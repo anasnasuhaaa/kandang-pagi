@@ -3,13 +3,19 @@ import axe from "axe-core";
 import { PDFDocument } from "pdf-lib";
 import { expect, test, type Page } from "@playwright/test";
 import { connectDatabase } from "../../db";
-import { resellerSpaces } from "../../db/schema";
+import { rateLimit, resellerSpaces } from "../../db/schema";
 import { businessDate } from "../../lib/format";
 import { createAuth } from "../../server/auth/config";
 import { addMovement, createBarn, createFlock } from "../../server/services/population";
 import { testDatabaseUrl } from "../integration/test-database";
 const adminEmail = process.env.KANDANG_E2E_ADMIN_EMAIL!;
 const adminPassword = process.env.KANDANG_E2E_ADMIN_PASSWORD!;
+
+test.beforeEach(async () => {
+  // Each browser scenario starts with an independent rate-limit window in the disposable database.
+  const { client, db } = connectDatabase(testDatabaseUrl());
+  try { await db.delete(rateLimit); } finally { await client.end(); }
+});
 
 async function signIn(page: Page, email = adminEmail, password = adminPassword, destination = "/dashboard") {
   await page.goto("/masuk");
@@ -92,7 +98,13 @@ test("aksesibilitas warna dan struktur di tema terang dan gelap", async ({ page 
   }
 });
 
-test("akun baru, aktivasi manual, izin ABK dan keluar", async ({ page, browser, request }) => {
+test("akun baru, aktivasi, reset, izin ABK, dan keluar", async ({ page, browser, request }) => {
+  test.setTimeout(60_000);
+  const crossSite = await request.post("/api/auth/sign-in/email", {
+    headers: { origin: "https://external.example.test" },
+    data: { email: "cross-site@example.test", password: randomBytes(20).toString("base64url") },
+  });
+  expect(crossSite.status()).toBe(403);
   const rejected = await request.post("/api/auth/sign-up/email", { data: { email: "public@example.test", name: "Public" } });
   expect(rejected.status()).toBe(404);
   await page.goto("/keuangan");
@@ -135,6 +147,22 @@ test("akun baru, aktivasi manual, izin ABK dan keluar", async ({ page, browser, 
   await operator.goto("/pengaturan?tab=akun");
   await expect(operator.getByRole("tab", { name: "Akun pengguna" })).toHaveCount(0);
   await expect(operator.getByRole("heading", { name: "Profil dan tampilan" })).toBeVisible();
+
+  await page.reload();
+  await page.getByRole("row").filter({ hasText: operatorEmail }).getByRole("button", { name: "Tautan reset" }).click();
+  const reset = page.getByRole("dialog", { name: "Tautan reset" });
+  await reset.getByRole("button", { name: "Buat tautan baru" }).click();
+  const resetLink = await reset.getByLabel("Tautan akses akun").inputValue();
+  const resetPage = await recipient.newPage();
+  await resetPage.goto(resetLink);
+  const newSecret = randomBytes(20).toString("base64url");
+  await resetPage.getByLabel("Kata sandi baru", { exact: true }).fill(newSecret);
+  await resetPage.getByLabel("Ulangi kata sandi").fill(newSecret);
+  await resetPage.getByRole("button", { name: "Simpan kata sandi" }).click();
+  await expect(resetPage).toHaveURL("/masuk");
+  await operator.goto("/dashboard");
+  await expect(operator).toHaveURL("/masuk");
+  await signIn(operator, operatorEmail, newSecret);
   await operator.getByRole("button", { name: "Menu akun" }).click();
   await operator.getByRole("menuitem", { name: "Keluar" }).click();
   await expect(operator).toHaveURL("/masuk");
@@ -335,6 +363,14 @@ test("kesehatan, kas, dan persetujuan koreksi", async ({ page, browser }) => {
   await page.getByRole("alertdialog").getByRole("button", { name: "Konfirmasi dan simpan" }).click();
   await expect(page.getByRole("cell", { name: "Pemasukan kas uji", exact: true })).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Pemasukan kas uji" }).getByRole("button", { name: "Tambah bukti" })).toBeVisible();
+  await page.goto("/laporan?jenis=keuangan&transaksi=income&cari=Pemasukan%20kas%20uji");
+  await expect(page.getByRole("heading", { name: "Laporan Keuangan farm" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Pemasukan kas uji", exact: true })).toBeVisible();
+  const pdfPath = (await page.getByRole("link", { name: "Unduh PDF" }).getAttribute("href"))!;
+  const pdf = await page.request.get(pdfPath);
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()["cache-control"]).toContain("no-store");
+  expect((await PDFDocument.load(await pdf.body())).getTitle()).toContain("Keuangan farm");
 });
 
 test("reseller mencatat kemasan, stok, penjualan, dan mengunduh laporan privat", async ({ page, request }) => {

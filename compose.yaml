@@ -1,0 +1,39 @@
+services:
+  web:
+    build: .
+    env_file: "${KANDANG_ENV_FILE:-.env.docker.local}"
+    ports:
+      - "127.0.0.1:${KANDANG_PORT:-3000}:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .git/
+            - .next/
+            - node_modules/
+            - .env*
+            - package.json
+            - package-lock.json
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: package-lock.json
+
+  postgres:
+    image: postgres:17-alpine
+    profiles: [local-db]
+    env_file: "${KANDANG_POSTGRES_ENV_FILE:-.env.postgres.local}"
+    volumes:
+      - development-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER:-postgres}\" -d \"$${POSTGRES_DB:-postgres}\""]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  development-db:

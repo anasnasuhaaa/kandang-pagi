@@ -1,0 +1,13 @@
+.git
+.next
+node_modules
+coverage
+playwright-report
+test-results
+.env*
+**/.env*
+.vercel
+*.pem
+*.sql.gz
+*.dump
+*.tsbuildinfo

@@ -1,15 +1,15 @@
 # Project State — Kandang Pagi
 
-> **Living document**: Codex must update this after every stage and include the changes in that stage's local commit. This is a **planning baseline**, not a claim that the app features are implemented.
+> This file records the verified implementation state for each local stage commit.
 
 ## Summary
 
 - Project: Kandang Pagi real client farm management web application.
 - Source repository: **already initialized by user**; do not recreate Git/Next.js.
-- Current stage: **06 complete**.
-- Last completed stage: **06 — Reseller and reports**.
-- Next stage: **07 — Integration and Final Audit** (`codex/prompts/07-integration-and-final-audit.md`).
-- All nine core modules are in MVP scope.
+- Current stage: **07 complete**.
+- Last completed stage: **07 — Integration and Final Audit**.
+- All nine core modules are implemented and verified locally.
+- Manual release instructions are in the [release runbook](../RELEASE_RUNBOOK.md).
 - Git policy: local stage commits only; **NEVER PUSH**.
 
 ## Stage tracker
@@ -21,19 +21,19 @@
 | 03 Dashboard/Populasi | Complete | [Report](reports/STAGE_03_REPORT.md) | `8b12425` | — |
 | 04 Pakan/Telur | Complete | [Report](reports/STAGE_04_REPORT.md) | `ee279a8` | — |
 | 05 Kesehatan/Keuangan | Complete | [Report](reports/STAGE_05_REPORT.md) | `06006ba` | — |
-| 06 Reseller/Laporan | Complete | [Report](reports/STAGE_06_REPORT.md) | Commit containing report¹ | — |
-| 07 Final Audit | Not started | — | — | — |
+| 06 Reseller/Laporan | Complete | [Report](reports/STAGE_06_REPORT.md) | `7a24ceb` | — |
+| 07 Final Audit | Complete | [Report](reports/STAGE_07_REPORT.md) | Commit containing report¹ | — |
 
 ## Environment inventory (Codex must fill in Stage 01/02, no secret values)
 
 - Actual versions: Next.js 16.4.6, React 19.3.0, Drizzle 0.45.4, postgres.js 4.1.1, Base UI 1.9.0, shadcn 4.23.0, TypeScript 5.9.3.
 - npm 9.2.0, Node.js 22.22.1, existing npm lockfile.
 - shadcn uses `base-nova`; generated primitives and the shared shell are in place.
-- Verified migrations and account lifecycle on isolated local PostgreSQL 18.6. A dedicated development Neon URL is still required for Neon-based development.
-- Production DB separation: **not verified**.
+- Verified migrations and account lifecycle on isolated local PostgreSQL 18.6 and Docker PostgreSQL 17. The user's separate localhost development database has 3 migrations, 37 public tables and one active Administrator.
+- Vercel and the isolated Neon production database are pending manual setup and verification.
 - ImageKit names present: `IMAGEKIT_PRIVATE_KEY`, `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`, `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT`.
 - Better Auth 1.7.20 and its Drizzle adapter are installed and verified.
-- ¹ Resolve the Stage 06 commit with `git log -1 --format=%h -- codex/progress/reports/STAGE_06_REPORT.md`.
+- ¹ Resolve the Stage 07 commit with `git log -1 --format=%h -- codex/progress/reports/STAGE_07_REPORT.md`.
 
 ## Approved decisions snapshot
 
@@ -47,12 +47,10 @@
 ## Next-session instructions
 
 1. Read root `AGENTS.md` and `codex/README.md`.
-2. Read all context docs relevant to next stage; read previous stage report (if any).
-3. Execute only the next stage. Update this file with actual completed work, command evidence, caveats and next stage.
-4. Commit locally only after verification. Do not push.
+2. Read the Stage 07 report, the final release checklist and the release runbook.
+3. Use the applicable stage reports and decisions when continuing development or preparing the manual release.
 
 ## Blockers and open questions
 
-- Direct Google Fonts downloads timed out on this workstation. Stage 01 built through a temporary Poppins mirror and verified the resulting production bundle in Chromium. The tracked build uses the standard Next.js Google Fonts integration.
-- Development and production Neon endpoints have not been inspected. Tests used private disposable PostgreSQL databases. At the user’s request, their separate empty localhost development DB was migrated and verified with 3 migrations, 37 tables and 0 accounts.
-- Unspecified operational details are documented safe defaults in context, not a request to start another broad decision session.
+- Direct Google Fonts downloads timed out on the workstation. The Stage 07 build passed with a temporary mirror serving real Poppins WOFF2 files. The tracked build uses Next.js Google Fonts integration.
+- Production environment, hostname and cookie checks are manual. Check the ImageKit account policy for named transformations during release.

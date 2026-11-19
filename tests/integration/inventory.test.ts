@@ -121,4 +121,20 @@ test("feed and egg stock use atomic dated ledgers and unique cash origins", asyn
     const view = await eggView(abk.headers, { from: day, to: today }, db);
     assert.equal(view.events.find(({ id }) => id === replay.id)?.sale?.paid, undefined);
   });
+
+  await t.test("parallel warehouse releases serialize, reject excess, and do not post expenses", async () => {
+    const supply = await master("INV-RACE", "Pakan Uji Serentak", "complete");
+    await openFeedStock(admin.headers, { ...record(today), productId: supply, grams: "40", value: "40000", note: "Saldo uji pelepasan" }, db);
+    const release = { ...record(today), productId: supply, barnId, grams: "30" };
+    const other = { ...release, requestKey: randomUUID() };
+    const outcomes = await Promise.allSettled([issueFeed(abk.headers, release, db), issueFeed(abk.headers, other, db)]);
+    assert.equal(outcomes.filter(({ status }) => status === "fulfilled").length, 1);
+    const winner = outcomes[0].status === "fulfilled" ? release : other;
+    const repeated = await issueFeed(abk.headers, winner, db);
+    assert.equal(repeated.replay, true);
+    const projection = await feedProjection(db, today);
+    assert.equal(projection.balances.get(stockKey(null, supply))?.grams, 10000);
+    assert.equal(projection.balances.get(stockKey(barnId, supply))?.grams, 30000);
+    assert.equal((await db.select().from(farmCash).where(eq(farmCash.id, repeated.id))).length, 0);
+  });
 });

@@ -29,3 +29,24 @@ Tinjau berkas SQL dalam `db/migrations` dan buat cadangan produksi. Dalam lingku
 Isi `IMAGEKIT_PRIVATE_KEY` dan `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT` secara privat. `IMAGEKIT_RECEIPT_FOLDER` mengatur direktori, dengan nilai bawaan `/kandang-pagi/receipts`. Gunakan prefiks berbeda untuk pengembangan dan produksi. Pembacaan melalui aplikasi menggunakan tautan bertanda tangan yang berlaku 120 detik. Batasi akses tanpa tanda tangan di pengaturan ImageKit untuk folder atau akun bukti, termasuk akses melalui transformasi bernama. Periksa halaman **Keuangan → Riwayat dan koreksi** untuk membersihkan unggahan yang tertunda lebih dari lima menit.
 
 URL PostgreSQL lokal boleh menyertakan parameter kompatibilitas `schema=public`. Aplikasi tetap memakai skema `public`.
+
+## Docker untuk pengembangan
+
+Siapkan `.env.docker.local` dengan konfigurasi aplikasi dari `.env.example`. Untuk menggunakan PostgreSQL yang dapat dijangkau dari kontainer, isi `DATABASE_URL` dengan koneksi pengembangan. Alamat loopback dari dalam kontainer mengarah ke kontainer itu sendiri. Untuk basis data di host, gunakan `host.docker.internal` dan pastikan PostgreSQL mengizinkan koneksi melalui antarmuka Docker.
+
+Untuk menggunakan basis data khusus Compose, buat `.env.postgres.local` yang hanya berisi `POSTGRES_USER`, `POSTGRES_PASSWORD`, dan `POSTGRES_DB`. Gunakan host `postgres` pada `DATABASE_URL` aplikasi, dengan kredensial yang sama. Set `BETTER_AUTH_URL=http://localhost:3000`, atau set `KANDANG_PORT` saat menjalankan Compose dan gunakan port yang sama di `BETTER_AUTH_URL`.
+
+```bash
+docker compose --profile local-db up -d --build
+docker compose --profile local-db exec web npm run db:migrate
+docker compose --profile local-db exec web npm run db:bootstrap-admin
+docker compose --profile local-db down
+```
+
+Isi `BOOTSTRAP_ADMIN_EMAIL` dan `BOOTSTRAP_ADMIN_NAME` di lingkungan kontainer sebelum bootstrap. Untuk basis data eksternal pengembangan, jalankan perintah Compose tanpa `--profile local-db`. Jalankan `docker compose --profile local-db up --build --watch` untuk sinkronisasi sumber. Volume Compose tetap ada setelah `down`. Berkas lingkungan dikecualikan dari konteks pembangunan citra.
+
+## Pemeriksaan sebelum rilis
+
+- Jalankan `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:integration`, `npm run build`, dan `npm run test:e2e`. Gunakan basis data kosong terpisah untuk integrasi dan browser. Perbandingan skema dilakukan dengan `npm run db:generate`.
+- Jika kredensial ImageKit pengembangan tersedia, jalankan `npm run test:imagekit` dengan `TEST_DATABASE_URL` PostgreSQL lokal yang terisolasi. Uji menambah dua berkas sintetis privat di folder verifikasi dan membersihkannya setelah selesai.
+- Periksa [daftar pemeriksaan rilis](codex/checklists/FINAL_RELEASE_CHECKLIST.md) dan [panduan penerapan](codex/RELEASE_RUNBOOK.md).

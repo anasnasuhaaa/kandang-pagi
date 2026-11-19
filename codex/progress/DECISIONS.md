@@ -118,6 +118,19 @@
 - Farm-wide HDP and FCR require observations covering the active flocks or explicit mixed barn harvest. Whole-farm stock totals remain separate from barn/flock views for inventory that is stored centrally.
 - Category and transaction filters apply to compatible table details; labels explain the scope of unchanged period totals. PDF uses A4 landscape, a standard embedded PDF font, repeated headers and WIB criteria and dates.
 
+## Stage 07 engineering decisions
+
+### A018 — Signed receipt delivery stays on the server
+- Date/stage: 2026-11-19, Stage 07.
+- Status: Engineering assumption.
+- Once authorized, stream the private image through the application. The 120-second provider signature stays on the server. Validate the response media type, disallow upstream redirects and use a bounded request time. Receipt and access responses use no-store behavior and a no-referrer policy.
+
+### A019 — Docker isolation and dependency updates
+- Date/stage: 2026-11-19, Stage 07.
+- Status: Engineering assumption.
+- Use Node 22 for a reproducible Docker development image with a digest-pinned base, an npm cache mount and runtime-only environment files. Provide PostgreSQL 17 as an optional local development service with its own volume and settings.
+- Use the existing shadcn CLI as a build-time dependency and scoped npm overrides for the advisory-affected transitive `minimatch` and `esbuild` versions. npm audit reported zero vulnerabilities after the overrides. This stage adds no schema migration.
+
 ## Entry template
 
 ```markdown

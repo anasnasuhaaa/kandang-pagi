@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { receiptFileError, receiptLimit } from "@/lib/receipts";
+import { receiptFileError, receiptLimit, receiptMime } from "@/lib/receipts";
 import { authConfig } from "@/server/auth/config";
 import { requireRole } from "@/server/auth/permissions";
 import { ServiceError, safeError } from "@/server/services/errors";
@@ -56,7 +56,12 @@ export async function GET(request: Request, context: Context) {
       return NextResponse.json(await receiptHistory(request.headers, cashId), { headers });
     }
     const url = await receiptDelivery(request.headers, { cashId, receiptId: query.get("versi") ?? undefined });
-    return new Response(null, { status: 302, headers: { ...headers, Location: url } });
+    const image = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(12_000), redirect: "error" });
+    const type = receiptMime.safeParse(image.headers.get("content-type"));
+    if (!image.ok || !type.success || !image.body) {
+      throw new ServiceError("not-found", "Foto bukti transaksi tidak dapat dibuka.");
+    }
+    return new Response(image.body, { headers: { ...headers, "Content-Type": type.data } });
   } catch (error) {
     return failure(error);
   }

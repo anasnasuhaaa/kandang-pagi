@@ -96,7 +96,13 @@ export async function uploadReceipt(
       if (marked && uploaded) {
         try {
           await service.remove(uploaded.id);
-          await db.update(transactionReceipts).set({ status: "deleted" }).where(eq(transactionReceipts.id, id));
+          await db.transaction(async (tx) => {
+            const [removed] = await tx.update(transactionReceipts).set({ status: "deleted" })
+              .where(and(eq(transactionReceipts.id, id), eq(transactionReceipts.status, "cleanup_pending")))
+              .returning({ uploader: transactionReceipts.uploadedBy });
+            if (removed) await writeAudit(tx, { actorId: removed.uploader, actorRole: "administrator",
+              entity: "receipt", entityId: id, action: "orphan_cleaned" });
+          });
         } catch {
           // The deterministic reservation remains available for reconciliation.
         }
