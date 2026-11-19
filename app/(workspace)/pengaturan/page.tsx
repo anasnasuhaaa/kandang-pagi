@@ -3,6 +3,7 @@ import { Settings } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
+import { CorrectionTable } from "@/components/finance/correction-table";
 import { AccountControls, CreateAccountDialog } from "@/components/account/account-controls";
 import { ProfileForms } from "@/components/account/profile-forms";
 import { DataTable } from "@/components/shared/data-table";
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TableCell, TableRow } from "@/components/ui/table";
+import { ledgerQuery } from "@/lib/domain/ledger-query";
 import { businessTimeZone } from "@/lib/format";
 import { roleLabels } from "@/lib/roles";
 import { listAccountAudit, listAccounts } from "@/server/auth/accounts";
@@ -22,10 +24,10 @@ export const metadata: Metadata = { title: "Pengaturan" };
 
 const path = "/pengaturan";
 const tabs = [
-  { value: "profil", label: "Profil" }, { value: "akun", label: "Akun pengguna" }, { value: "audit", label: "Audit akun" },
+  { value: "profil", label: "Profil" }, { value: "akun", label: "Akun pengguna" }, { value: "audit", label: "Audit akun" }, { value: "koreksi", label: "Koreksi" },
 ];
 const querySchema = z.object({
-  tab: z.enum(["profil", "akun", "audit"]).catch("profil"),
+  tab: z.enum(["profil", "akun", "audit", "koreksi"]).catch("profil"),
   cari: z.string().trim().max(100).catch(""),
   halaman: z.coerce.number().int().min(1).max(10_000).catch(1),
 });
@@ -54,16 +56,20 @@ export default function SettingsPage(props: Props) {
 
 async function SettingsContent({ searchParams }: Props) {
   const actor = await requireModule("pengaturan");
-  const params = querySchema.parse(await searchParams);
+  const raw = await searchParams;
+  const params = querySchema.parse(raw);
   const administrator = actor.role === "administrator";
-  const tab = administrator ? params.tab : "profil";
+  const operator = actor.role === "abk";
+  const tab = administrator || (operator && params.tab === "koreksi") ? params.tab : "profil";
+  const visibleTabs = administrator ? tabs : tabs.filter(({ value }) => value === "profil" || (operator && value === "koreksi"));
   return (
     <>
       <ModuleHeader title="Pengaturan" description="Kelola profil, tampilan, dan hak akses sesuai peran Anda." icon={Settings} />
-      <ModuleTabs tab={tab} tabs={administrator ? tabs : tabs.slice(0, 1)} path={path}>
+      <ModuleTabs tab={tab} tabs={visibleTabs} path={path}>
         {tab === "profil" && <ProfileForms name={actor.name} email={actor.email} role={actor.role} theme={actor.theme} />}
         {tab === "akun" && <AccountsContent search={params.cari} page={params.halaman} ownId={actor.id} />}
         {tab === "audit" && <AuditContent page={params.halaman} />}
+        {tab === "koreksi" && <CorrectionTable path={path} tab={tab} query={ledgerQuery(raw)} administrator={administrator} />}
       </ModuleTabs>
     </>
   );

@@ -1,4 +1,4 @@
-import { and, eq, notExists } from "drizzle-orm";
+import { and, eq, notExists, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Database, Transaction } from "../../db";
 import { barns, farmEvents } from "../../db/schema";
@@ -24,12 +24,14 @@ export function isEffective(store: Store) {
   return notExists(store.select({ id: cancellation.id }).from(cancellation).where(eq(cancellation.reversesId, farmEvents.id)));
 }
 
+export const farmEventOrder = sql<bigint>`coalesce(${farmEvents.effectiveSequence}, ${farmEvents.sequence})`;
+
 export async function postFarmEvent(tx: Transaction, actor: Actor, event: {
-  kind: typeof farmEvents.$inferInsert.kind; date: string; requestKey: string; note?: string; reversesId?: string;
+  kind: typeof farmEvents.$inferInsert.kind; date: string; requestKey: string; note?: string; reversesId?: string; replacesId?: string; effectiveSequence?: bigint;
 }) {
   const [row] = await tx.insert(farmEvents).values({
     kind: event.kind, businessDate: event.date, occurredAt: jakartaStart(event.date), actorId: actor.id,
-    requestKey: event.requestKey, note: event.note, reversesId: event.reversesId,
+    requestKey: event.requestKey, note: event.note, reversesId: event.reversesId, replacesId: event.replacesId, effectiveSequence: event.effectiveSequence,
   }).returning();
   return row;
 }

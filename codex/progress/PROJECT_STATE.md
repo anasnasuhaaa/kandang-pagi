@@ -6,9 +6,9 @@
 
 - Project: Kandang Pagi real client farm management web application.
 - Source repository: **already initialized by user**; do not recreate Git/Next.js.
-- Current stage: **04 complete**.
-- Last completed stage: **04 — Feed and egg production**.
-- Next stage: **05 — Health and Finance** (`codex/prompts/05-health-and-finance.md`).
+- Current stage: **05 complete**.
+- Last completed stage: **05 — Health and finance**.
+- Next stage: **06 — Reseller and Reports** (`codex/prompts/06-reseller-and-reports.md`).
 - All nine core modules are in MVP scope.
 - Git policy: local stage commits only; **NEVER PUSH**.
 
@@ -19,8 +19,8 @@
 | 01 Foundation | Complete | [Report](reports/STAGE_01_REPORT.md) | `fff0439` | — |
 | 02 Database/Auth | Complete | [Report](reports/STAGE_02_REPORT.md) | `fe243f6` | — |
 | 03 Dashboard/Populasi | Complete | [Report](reports/STAGE_03_REPORT.md) | `8b12425` | — |
-| 04 Pakan/Telur | Complete | [Report](reports/STAGE_04_REPORT.md) | Commit containing report¹ | — |
-| 05 Kesehatan/Keuangan | Not started | — | — | — |
+| 04 Pakan/Telur | Complete | [Report](reports/STAGE_04_REPORT.md) | `ee279a8` | — |
+| 05 Kesehatan/Keuangan | Complete | [Report](reports/STAGE_05_REPORT.md) | Commit containing report¹ | — |
 | 06 Reseller/Laporan | Not started | — | — | — |
 | 07 Final Audit | Not started | — | — | — |
 
@@ -33,7 +33,7 @@
 - Production DB separation: **not verified**.
 - ImageKit names present: `IMAGEKIT_PRIVATE_KEY`, `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`, `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT`.
 - Better Auth 1.7.20 and its Drizzle adapter are installed and verified.
-- ¹ Resolve the Stage 04 commit with `git log -1 --format=%h -- codex/progress/reports/STAGE_04_REPORT.md`.
+- ¹ Resolve the Stage 05 commit with `git log -1 --format=%h -- codex/progress/reports/STAGE_05_REPORT.md`.
 
 ## Approved decisions snapshot
 
@@ -54,5 +54,5 @@
 ## Blockers and open questions
 
 - Direct Google Fonts downloads timed out on this workstation. Stage 01 built through a temporary Poppins mirror and verified the resulting production bundle in Chromium. The tracked build uses the standard Next.js Google Fonts integration.
-- Development and production Neon endpoints have not been inspected. Tests used private disposable local databases.
+- Development and production Neon endpoints have not been inspected. Tests used private disposable PostgreSQL databases. At the user’s request, their separate empty localhost development DB was migrated and verified with 3 migrations, 37 tables and 0 accounts.
 - Unspecified operational details are documented safe defaults in context, not a request to start another broad decision session.

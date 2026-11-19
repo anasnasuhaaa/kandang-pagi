@@ -15,6 +15,13 @@
       "when": 1795071754695,
       "tag": "0001_zero_harvest_observation",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795072757696,
+      "tag": "0002_finance_receipts_and_corrections",
+      "breakpoints": true
     }
   ]
 }

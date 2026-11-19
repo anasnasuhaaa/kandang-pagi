@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, lte, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, lte, ne, or } from "drizzle-orm";
 import { database, type Transaction } from "../../db";
 import {
   barnFeedCloses, barns, farmCash, farmEvents, feedMixInputs, feedMixes, feedMovements, feedProducts, feedReceipts,
@@ -11,18 +11,18 @@ import {
 import { datesBetween, shiftBusinessDate } from "../../lib/format";
 import { requireRole } from "../auth/permissions";
 import { ServiceError } from "./errors";
-import { assertActiveBarn, farmCommand, farmOperators, farmReaders, farmWrite, isEffective, parseInput, type Store } from "./farm";
+import { assertActiveBarn, farmCommand, farmEventOrder, farmOperators, farmReaders, farmWrite, isEffective, parseInput, type Store } from "./farm";
 import { recordOnce, writeAudit } from "./transactions";
 
 const feedKinds = ["feed_opening", "feed_purchase", "feed_mix", "feed_issue", "feed_close", "feed_adjustment"] as const;
 type Product = typeof feedProducts.$inferSelect;
 
 export async function feedProjection(store: Store, end?: string, omittedId?: string, from?: string) {
-  const conditions = and(inArray(farmEvents.kind, feedKinds), isEffective(store), end ? lte(farmEvents.businessDate, end) : undefined,
+  const conditions = and(or(inArray(farmEvents.kind, feedKinds), eq(farmEvents.kind, "reversal")), isEffective(store), end ? lte(farmEvents.businessDate, end) : undefined,
     omittedId ? ne(farmEvents.id, omittedId) : undefined);
   const [events, moves, closes] = await Promise.all([
     store.select({ id: farmEvents.id, day: farmEvents.businessDate, sequence: farmEvents.sequence }).from(farmEvents)
-      .where(conditions).orderBy(asc(farmEvents.businessDate), asc(farmEvents.sequence)),
+      .where(conditions).orderBy(asc(farmEvents.businessDate), asc(farmEventOrder)),
     store.select({
       eventId: feedMovements.eventId, productId: feedMovements.productId, barnId: feedMovements.barnId,
       grams: feedMovements.deltaGrams, kind: feedMovements.kind, value: feedMovements.valueIdr,
@@ -33,7 +33,13 @@ export async function feedProjection(store: Store, end?: string, omittedId?: str
     }).from(barnFeedCloses).innerJoin(farmEvents, eq(farmEvents.id, barnFeedCloses.id)).where(conditions),
   ]);
   const grouped = new Map(events.map((event): [string, FeedRecord] => [event.id, { ...event, moves: [] }]));
-  for (const move of moves) grouped.get(move.eventId)?.moves.push(move);
+  for (const move of moves) {
+    const event = grouped.get(move.eventId);
+    if (!event) continue;
+    if (move.kind === "reversal") {
+      if (move.barnId) (event.touches ??= []).push({ barnId: move.barnId, productId: move.productId });
+    } else event.moves.push(move);
+  }
   for (const close of closes) {
     const record = grouped.get(close.id);
     if (record) record.close = close;
@@ -193,7 +199,7 @@ export async function feedView(headers: Headers, period: { from: string; to: str
     db.select({
       id: farmEvents.id, kind: farmEvents.kind, day: farmEvents.businessDate, note: farmEvents.note, recordedAt: farmEvents.recordedAt,
     }).from(farmEvents).where(and(inArray(farmEvents.kind, feedKinds), lte(farmEvents.businessDate, period.to)))
-      .orderBy(asc(farmEvents.businessDate), asc(farmEvents.sequence)),
+      .orderBy(asc(farmEvents.businessDate), asc(farmEventOrder)),
     db.select({
       id: feedReceipts.id, supplier: feedReceipts.supplier, productId: feedReceipts.productId, grams: feedReceipts.grams,
       ...(includeMoney ? { total: feedReceipts.totalIdr } : {}),

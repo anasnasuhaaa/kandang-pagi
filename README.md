@@ -23,3 +23,9 @@ Jalankan `npm test` untuk uji unit. Siapkan basis data PostgreSQL lokal baru den
 ### Rilis manual
 
 Tinjau berkas SQL dalam `db/migrations` dan buat cadangan produksi. Dalam lingkungan migrasi terpisah, arahkan `DATABASE_URL` ke basis data produksi, atur `DATABASE_TARGET=production` dan jalankan `npm run db:migrate -- --production` secara eksplisit. Untuk bootstrap pertama di produksi, jalankan `npm run db:bootstrap-admin -- --production` dengan konfigurasi yang sama dan masukkan kata sandi di terminal. Atur `BETTER_AUTH_URL` ke asal URL Vercel Production yang stabil dan simpan rahasia di konfigurasi Vercel.
+
+## Bukti transaksi
+
+Isi `IMAGEKIT_PRIVATE_KEY` dan `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT` secara privat. `IMAGEKIT_RECEIPT_FOLDER` mengatur direktori, dengan nilai bawaan `/kandang-pagi/receipts`. Gunakan prefiks berbeda untuk pengembangan dan produksi. Pembacaan melalui aplikasi menggunakan tautan bertanda tangan yang berlaku 120 detik. Batasi akses tanpa tanda tangan di pengaturan ImageKit untuk folder atau akun bukti, termasuk akses melalui transformasi bernama. Periksa halaman **Keuangan → Riwayat dan koreksi** untuk membersihkan unggahan yang tertunda lebih dari lima menit.
+
+URL PostgreSQL lokal boleh menyertakan parameter kompatibilitas `schema=public`. Aplikasi tetap memakai skema `public`.

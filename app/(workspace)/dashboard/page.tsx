@@ -7,8 +7,10 @@ import { EmptyState, MetricCard, ModuleHeader, ModuleSkeleton } from "@/componen
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { categoryLabels, sortedCategories } from "@/lib/domain/production-input";
 import { populationPeriod } from "@/lib/domain/population-input";
-import { businessDate, formatDate, formatQuantity } from "@/lib/format";
+import { businessDate, formatDate, formatIDR, formatQuantity } from "@/lib/format";
 import { requireModule } from "@/server/auth/workspace";
+import { financeSummary } from "@/server/services/finance";
+import { overdueVaccines } from "@/server/services/health";
 import { productionSummary } from "@/server/services/production-summary";
 import { populationDashboard } from "@/server/services/population";
 
@@ -28,11 +30,13 @@ function weight(grams: number | null) {
 }
 
 async function DashboardContent({ searchParams }: Props) {
-  await requireModule("dashboard");
+  const actor = await requireModule("dashboard");
   const period = populationPeriod(await searchParams);
   const context = await headers();
-  const [{ timeline, rates, barnRows, flockRows }, production] = await Promise.all([
+  const [{ timeline, rates, barnRows, flockRows }, production, vaccines, cash] = await Promise.all([
     populationDashboard(context, period), productionSummary(context, period),
+    overdueVaccines(context, period.to, undefined, period.barnId, period.flockId),
+    !period.barnId && !period.flockId && actor.role !== "abk" ? financeSummary(context, period) : null,
   ]);
   const last = timeline[timeline.length - 1];
   const knownDays = timeline.filter(({ known }) => known);
@@ -86,6 +90,14 @@ async function DashboardContent({ searchParams }: Props) {
             detail={sortedCategories.map((category) => `${categoryLabels[category]} ${formatQuantity(production.eggStock[category])}`).join(" · ")} />
         </>}
         {!period.flockId && <MetricCard label="Sisa pakan di kandang" value={weight(production.barnGrams)} detail={formatDate(period.to)} />}
+      </section>
+      <section aria-label="Kesehatan dan kas" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Vaksin terlambat" value={vaccines.overdue} detail={formatDate(period.to)} />
+        <MetricCard label="Vaksin dijadwalkan" value={vaccines.due} detail="Hari ini dan mendatang" />
+        {cash && <>
+          <MetricCard label="Saldo kas farm" value={cash.count ? formatIDR(cash.balance) : "Belum ada catatan"} detail={formatDate(period.to)} />
+          <MetricCard label="Arus kas bersih" value={formatIDR(cash.net)} detail={`Masuk ${formatIDR(cash.income)} · Keluar ${formatIDR(cash.expense)}`} />
+        </>}
       </section>
     </>
   );

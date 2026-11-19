@@ -7,7 +7,7 @@ import { InventoryConflict, reconcileEggs, type EggDelta } from "../../lib/domai
 import { eggAdjustmentSchema, gradingSchema, harvestSchema, saleSchema, sortedCategories } from "../../lib/domain/production-input";
 import { requireRole } from "../auth/permissions";
 import { ServiceError } from "./errors";
-import { assertActiveBarn, farmCommand, farmOperators, farmReaders, isEffective, parseInput, type Store } from "./farm";
+import { assertActiveBarn, farmCommand, farmEventOrder, farmOperators, farmReaders, isEffective, parseInput, type Store } from "./farm";
 import { populationPeriodData } from "./population";
 
 const eggKinds = ["egg_harvest", "egg_grading", "egg_sale", "egg_adjustment"] as const;
@@ -18,7 +18,7 @@ export async function eggProjection(store: Store, end?: string, omittedId?: stri
   }).from(eggStockMovements).innerJoin(farmEvents, eq(farmEvents.id, eggStockMovements.eventId))
     .where(and(isEffective(store), inArray(farmEvents.kind, eggKinds), end ? lte(farmEvents.businessDate, end) : undefined,
       omittedId ? ne(farmEvents.id, omittedId) : undefined))
-    .orderBy(asc(farmEvents.businessDate), asc(farmEvents.sequence), asc(eggStockMovements.id));
+    .orderBy(asc(farmEvents.businessDate), asc(farmEventOrder), asc(eggStockMovements.id));
   try {
     return reconcileEggs(rows);
   } catch (error) {
@@ -115,7 +115,7 @@ export async function eggView(headers: Headers, period: { from: string; to: stri
       grams: eggHarvests.measuredGrams, incomplete: eggHarvests.massIncomplete, day: farmEvents.businessDate,
     }, current: isEffective(db) }).from(eggHarvests)
       .innerJoin(farmEvents, eq(farmEvents.id, eggHarvests.id)).where(lte(farmEvents.businessDate, period.to))
-      .orderBy(asc(farmEvents.businessDate), asc(farmEvents.sequence)),
+      .orderBy(asc(farmEvents.businessDate), asc(farmEventOrder)),
     db.select().from(eggGradings),
     db.select({ id: eggSales.id, ...(includeMoney ? { buyer: eggSales.buyer, paid: eggSales.paidIdr } : {}) }).from(eggSales),
     db.select({ saleId: eggSaleLines.saleId, category: eggSaleLines.category, pieces: eggSaleLines.pieces }).from(eggSaleLines),
@@ -124,7 +124,7 @@ export async function eggView(headers: Headers, period: { from: string; to: stri
     db.select({
       id: farmEvents.id, day: farmEvents.businessDate, kind: farmEvents.kind, note: farmEvents.note, recordedAt: farmEvents.recordedAt, effective: isEffective(db),
     }).from(farmEvents).where(and(inArray(farmEvents.kind, eggKinds), gte(farmEvents.businessDate, period.from), lte(farmEvents.businessDate, period.to)))
-      .orderBy(asc(farmEvents.businessDate), asc(farmEvents.sequence)),
+      .orderBy(asc(farmEvents.businessDate), asc(farmEventOrder)),
   ]);
   return {
     stock, barns: barnRows, flocks: flockRows, harvests,

@@ -15,6 +15,7 @@ export type FeedRecord = {
   day: string;
   sequence?: bigint;
   moves: FeedDelta[];
+  touches?: { barnId: string; productId: string }[];
   close?: { barnId: string; productId: string; grams: number };
 };
 
@@ -58,7 +59,8 @@ export function reconcileFeed(records: readonly FeedRecord[], previousDate: (dat
       }
     }
     while (position < records.length && records[position].day === day) {
-      const { id, moves, close, sequence = BigInt(position + 1) } = records[position++];
+      const { id, moves, close, touches, sequence = BigInt(position + 1) } = records[position++];
+      for (const touch of touches ?? []) source(stockKey(touch.barnId, touch.productId), sequence);
       let deducted = zero;
       let returned = zero;
       for (const move of moves.filter(({ grams }) => grams < 0)) {

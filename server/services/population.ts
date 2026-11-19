@@ -8,7 +8,7 @@ import { barnSchema, barnStatusSchema, cancelMovementSchema, flockSchema, moveme
 import { requireRole } from "../auth/permissions";
 import { ServiceError } from "./errors";
 import { feedBarnBalance } from "./feed";
-import { farmOperators, farmReaders, farmWrite, isEffective, parseInput, postFarmEvent, type Store } from "./farm";
+import { farmEventOrder, farmOperators, farmReaders, farmWrite, isEffective, parseInput, postFarmEvent, type Store } from "./farm";
 import { recordOnce, writeAudit } from "./transactions";
 
 type DatedMovement = Movement & { id: string; day: string; sequence: bigint };
@@ -23,7 +23,7 @@ function movementRows(store: Store, flockId?: string, end?: string) {
   }).from(populationMovements)
     .innerJoin(farmEvents, eq(farmEvents.id, populationMovements.id))
     .where(and(isEffective(store), flockId ? eq(populationMovements.flockId, flockId) : undefined, end ? lte(farmEvents.businessDate, end) : undefined))
-    .orderBy(asc(farmEvents.businessDate), asc(farmEvents.sequence));
+    .orderBy(asc(farmEvents.businessDate), asc(farmEventOrder));
 }
 
 function applySafe(current: Placement | undefined, movement: Movement) {
@@ -124,6 +124,11 @@ export async function addMovement(headers: Headers, raw: unknown, db = database(
       });
       return event.id;
     }));
+}
+
+export async function validatePopulationHistory(tx: Transaction, flockId: string) {
+  const final = replayFlock(await movementRows(tx, flockId));
+  if (final?.alive) await activeBarn(tx, final.barnId);
 }
 
 export async function validatePopulationReversal(tx: Transaction, eventId: string) {
@@ -299,7 +304,7 @@ export async function populationPage(headers: Headers, input: {
       .innerJoin(flocks, eq(flocks.id, populationMovements.flockId)).where(query);
     total = result.total;
     const page = Math.min(input.page, Math.max(1, Math.ceil(total / pageSize)));
-    history = await movements.orderBy(desc(farmEvents.businessDate), desc(farmEvents.sequence)).limit(pageSize).offset((page - 1) * pageSize);
+    history = await movements.orderBy(desc(farmEvents.businessDate), desc(farmEventOrder)).limit(pageSize).offset((page - 1) * pageSize);
   } else {
     total = input.tab === "kandang" ? barnTable.length : flockTable.length;
   }

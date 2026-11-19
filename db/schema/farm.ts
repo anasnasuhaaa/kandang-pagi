@@ -22,6 +22,8 @@ export const farmEventKind = pgEnum("farm_event_kind", farmEventKinds);
 export const farmEvents = pgTable("farm_events", {
   id: id(),
   sequence: bigserial({ mode: "bigint" }).notNull().unique(),
+  effectiveSequence: bigint("effective_sequence", { mode: "bigint" }),
+  replacesId: uuid("replaces_id").references((): AnyPgColumn => farmEvents.id).unique(),
   kind: farmEventKind().notNull(),
   businessDate: dateOnly("business_date").notNull(),
   occurredAt: timestampUtc("occurred_at").notNull(),
@@ -34,6 +36,7 @@ export const farmEvents = pgTable("farm_events", {
   unique("farm_event_idempotency").on(table.actorId, table.kind, table.requestKey),
   index("farm_events_date_idx").on(table.businessDate, table.sequence),
   index("farm_events_kind_date_idx").on(table.kind, table.businessDate),
+  check("farm_events_replacement_link", sql`(${table.replacesId} is null) = (${table.effectiveSequence} is null) and (${table.replacesId} is null or ${table.kind} <> 'reversal')`),
   check("farm_events_reversal_link", sql`(${table.kind} = 'reversal') = (${table.reversesId} is not null)`),
 ]);
 
@@ -217,12 +220,14 @@ export const transactionReceipts = pgTable("transaction_receipts", {
   uploadedBy: text("uploaded_by").notNull().references(() => user.id),
   fileId: text("file_id").unique(),
   filePath: text("file_path").notNull().unique(),
+  digest: text().notNull().default(""),
   mime: text().notNull(),
   sizeBytes: integer("size_bytes").notNull(),
   status: receiptStatus().notNull().default("pending"),
   replacedBy: uuid("replaced_by").references((): AnyPgColumn => transactionReceipts.id),
   recordedAt: timestampUtc("recorded_at").defaultNow().notNull(),
 }, (table) => [
+  uniqueIndex("cash_single_pending_receipt").on(table.cashId).where(sql`${table.status} = 'pending'`),
   uniqueIndex("cash_single_active_receipt").on(table.cashId).where(sql`${table.status} = 'active'`),
   check("receipt_file_limits", sql`${table.sizeBytes} between 1 and 2097152 and ${table.mime} in ('image/jpeg','image/png','image/webp')`),
   check("receipt_file_required", sql`${table.status} not in ('active', 'replaced') or ${table.fileId} is not null`),

@@ -3,7 +3,8 @@ import axe from "axe-core";
 import { expect, test, type Page } from "@playwright/test";
 import { connectDatabase } from "../../db";
 import { businessDate } from "../../lib/format";
-import { createBarn, createFlock } from "../../server/services/population";
+import { createAuth } from "../../server/auth/config";
+import { addMovement, createBarn, createFlock } from "../../server/services/population";
 import { testDatabaseUrl } from "../integration/test-database";
 const adminEmail = process.env.KANDANG_E2E_ADMIN_EMAIL!;
 const adminPassword = process.env.KANDANG_E2E_ADMIN_PASSWORD!;
@@ -125,6 +126,7 @@ test("akun baru, aktivasi manual, izin ABK dan keluar", async ({ page, browser, 
   await expect(operator).toHaveURL("/masuk");
   await signIn(operator, operatorEmail, secret);
   await expect(operator.getByRole("link", { name: "Keuangan" })).toHaveCount(0);
+  expect((await recipient.request.get(`/api/bukti/${randomUUID()}`)).status()).toBe(403);
   await operator.goto("/keuangan");
   await expect(operator).toHaveURL("/dashboard");
   await operator.goto("/pengaturan?tab=akun");
@@ -257,4 +259,77 @@ test("pakan masuk, panen, sortir, dan penjualan lunas pada 320px", async ({ page
   await expect(page.getByRole("cell", { name: "Coklat 25 butir" })).toBeVisible();
   await expect(page.getByText(/Coklat 45 · Putih 20 · Cacat 10/)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+});
+
+test("kesehatan, kas, dan persetujuan koreksi", async ({ page, browser }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 320, height: 840 });
+  await signIn(page);
+  const cookies = (await page.context().cookies()).map(({ name, value }) => `${name}=${value}`).join("; ");
+  const admin = new Headers({ cookie: cookies });
+  const { client, db } = connectDatabase(testDatabaseUrl());
+  const email = `petugas-${randomUUID().slice(0, 8)}@example.test`;
+  const secret = randomBytes(20).toString("base64url");
+  try {
+    const auth = createAuth(db);
+    await auth.api.createUser({ body: { name: "Petugas Koreksi", email, password: secret, role: "abk", data: { status: "active" } } });
+    const response = await auth.api.signInEmail({ body: { email, password: secret }, asResponse: true });
+    const operator = new Headers({ cookie: response.headers.getSetCookie().map((value) => value.split(";")[0]).join("; ") });
+    const barn = await createBarn(admin, { requestKey: randomUUID(), code: "HF-TEST", name: "Kandang Koreksi Uji", location: "" }, db);
+    const flock = await createFlock(operator, {
+      requestKey: randomUUID(), code: "HF-KLP", name: "Kelompok Koreksi Uji", barnId: barn.id,
+      kind: "arrival", businessDate: businessDate(), count: "80", age: "90", origin: "Peternakan Uji", reason: "Kedatangan kelompok",
+    }, db);
+    await addMovement(operator, { requestKey: randomUUID(), flockId: flock.id, kind: "death", count: "8", businessDate: businessDate(), reason: "Penghitungan uji awal" }, db);
+  } finally {
+    await client.end();
+  }
+  const roleContext = await browser.newContext();
+  const operatorPage = await roleContext.newPage();
+  await signIn(operatorPage, email, secret);
+  await operatorPage.goto("/pengaturan?tab=koreksi");
+  await operatorPage.getByRole("button", { name: "Ajukan koreksi" }).click();
+  const correction = operatorPage.getByRole("dialog", { name: "Ajukan koreksi" });
+  await correction.getByRole("combobox", { name: "Catatan yang dikoreksi" }).click();
+  await operatorPage.getByRole("option", { name: /Penghitungan uji awal/ }).click();
+  await correction.getByRole("combobox", { name: "Bentuk koreksi" }).click();
+  await operatorPage.getByRole("option", { name: "Ganti jumlah mutasi" }).click();
+  await correction.getByLabel("Jumlah pengganti (ekor)").fill("6");
+  await correction.getByLabel("Alasan koreksi").fill("Jumlah dihitung ulang");
+  await correction.getByRole("button", { name: "Simpan pencatatan" }).click();
+  await expect(correction).toBeHidden();
+  await expect(operatorPage.getByRole("cell", { name: "Menunggu", exact: true })).toBeVisible();
+
+  await page.goto("/pengaturan?tab=koreksi");
+  await page.getByRole("button", { name: "Tinjau permintaan" }).click();
+  const review = page.getByRole("dialog", { name: "Tinjau permintaan" });
+  await review.getByRole("combobox", { name: "Keputusan" }).click();
+  await page.getByRole("option", { name: "Setujui", exact: true }).click();
+  await review.getByLabel("Alasan keputusan").fill("Catatan sudah diperiksa");
+  await review.getByRole("button", { name: "Periksa dan lanjutkan" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Konfirmasi dan simpan" }).click();
+  await expect(page.getByRole("cell", { name: "Disetujui", exact: true })).toBeVisible();
+  await operatorPage.reload();
+  await expect(operatorPage.getByRole("cell", { name: "Disetujui", exact: true })).toBeVisible();
+  await roleContext.close();
+
+  await page.goto("/kesehatan");
+  await page.getByRole("button", { name: "Catat kejadian kesehatan" }).click();
+  const incident = page.getByRole("dialog", { name: "Catat kejadian kesehatan" });
+  await incident.getByRole("combobox", { name: "Kandang" }).click();
+  await page.getByRole("option", { name: "Kandang Koreksi Uji", exact: true }).click();
+  await incident.getByLabel("Jenis kejadian").fill("Pengamatan kandang");
+  await incident.getByLabel("Gejala atau pengamatan").fill("Kondisi kelompok diamati");
+  await incident.getByRole("button", { name: "Simpan pencatatan" }).click();
+  await expect(page.getByRole("cell", { name: "Pengamatan kandang", exact: true })).toBeVisible();
+
+  await page.goto("/keuangan?tab=pemasukan");
+  await page.getByRole("button", { name: "Tambah pemasukan" }).click();
+  const cash = page.getByRole("dialog", { name: "Tambah pemasukan" });
+  await cash.getByLabel("Kategori").fill("Pemasukan kas uji");
+  await cash.getByLabel("Jumlah (Rp)").fill("50.000");
+  await cash.getByRole("button", { name: "Periksa dan lanjutkan" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Konfirmasi dan simpan" }).click();
+  await expect(page.getByRole("cell", { name: "Pemasukan kas uji", exact: true })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "Pemasukan kas uji" }).getByRole("button", { name: "Tambah bukti" })).toBeVisible();
 });

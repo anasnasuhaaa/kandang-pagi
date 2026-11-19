@@ -85,6 +85,23 @@
 - Warehouse egg stock is classified by the three approved categories. Ungraded units remain per harvest lot. Payments are exact integer rupiah and must equal the calculated total. The event PK is the unique linked cash origin. Egg sales with prices are Administrator only.
 - FCR requires both physical feed readings and complete actual harvest weight across the selected active barn-days. A flock view does not attribute a shared barn feed reading to individual flocks.
 
+## Stage 05 engineering decisions
+
+### A014 — Effective replacement and origin-linked cash
+- Date/stage: 2026-11-19, Stage 05.
+- Status: Engineering assumption implementing approved reversal policy.
+- Correct an event by appending a reversal at the original effective date. Where supported, append a replacement at the original logical position. The recorded sequence still measures audit order and detects a stale daily feed reading. Inventory replay suppresses compensated originals and retains both ledger facts for audit. Cash sums signed original, reversal and replacement entries.
+- Direct and requested correction use the same transaction validators. ABK can request correction for their own operational entries and sees only their own queue. Administrators can authorize stock, population and linked cash cancellations. Single-field replacements cover population count, manual cash amount, and measured feed close. Linked multi-line entries can be cancelled when historic validation allows it, then re-entered with their corrected details.
+- Cash totals reflect actual recorded movements. A negative recorded balance can indicate incomplete opening or funding entries. The app does not claim cash flow is profit.
+
+### A015 — Private receipt reservations and provider recovery
+- Date/stage: 2026-11-19, Stage 05.
+- Status: Engineering assumption.
+- Use the official ImageKit Node SDK, server-only credentials, verified JPEG/PNG/WebP contents within 2 MiB, and a deterministic opaque private path for pending reservations. Verify authority on reservation, finalization, and delivery. Commit only one active receipt and retain older versions. Sign with a 120-second expiry.
+- On upload failures retain the reservation for recovery. On a confirmed upload followed by DB failure attempt deletion. Retry cleanup by exact path after five minutes, with audit and a limit of 20 candidates per request.
+- Next.js 16.4.6 Cache Components rejects a route-level runtime export. Use the installed default Node runtime for image processing and route handlers.
+- Adapt the DB connector to accept the user’s local `schema=public` URL parameter for the existing public schema. Strip this client-specific parameter before postgres.js connects.
+
 ## Entry template
 
 ```markdown
