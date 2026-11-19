@@ -7,6 +7,7 @@ import { applyMovement, PopulationConflict, productionRates, type Movement, type
 import { barnSchema, barnStatusSchema, cancelMovementSchema, flockSchema, movementSchema } from "../../lib/domain/population-input";
 import { requireRole } from "../auth/permissions";
 import { ServiceError } from "./errors";
+import { feedBarnBalance } from "./feed";
 import { farmOperators, farmReaders, farmWrite, isEffective, parseInput, postFarmEvent, type Store } from "./farm";
 import { recordOnce, writeAudit } from "./transactions";
 
@@ -69,6 +70,7 @@ export async function setBarnStatus(headers: Headers, raw: unknown, db = databas
       if ([...placements.values()].some((position) => position.barnId === barnId && position.alive > 0)) {
         throw new ServiceError("conflict", "Pindahkan ternak hidup dari kandang ini sebelum menonaktifkannya.");
       }
+      if (await feedBarnBalance(tx, barnId)) throw new ServiceError("conflict", "Selesaikan stok pakan kandang sebelum menonaktifkannya.");
     }
     await tx.update(barns).set({ active }).where(eq(barns.id, barnId));
     await writeAudit(tx, {
@@ -115,6 +117,7 @@ export async function addMovement(headers: Headers, raw: unknown, db = database(
 
       const event = await postFarmEvent(tx, actor, { kind: "population", date: values.businessDate, requestKey, note: values.reason });
       await tx.insert(populationMovements).values({ id: event.id, ...movement });
+      await validateDatedHarvests(tx, values.businessDate, values.flockId);
       await writeAudit(tx, {
         actorId: actor.id, actorRole: actor.role, entity: "population", entityId: event.id, action: "movement_posted",
         businessDate: values.businessDate, before: current, after: next, reason: values.reason,
@@ -144,12 +147,28 @@ export async function cancelMovement(headers: Headers, raw: unknown, db = databa
     recordOnce(tx, { actorId: actor.id, command: "cancel_population", requestKey }, values, async () => {
       const target = await validatePopulationReversal(tx, values.eventId);
       const event = await postFarmEvent(tx, actor, { kind: "reversal", date: target.day, requestKey, note: values.reason, reversesId: values.eventId });
+      await validateDatedHarvests(tx, target.day, target.flockId);
       await writeAudit(tx, {
         actorId: actor.id, actorRole: actor.role, action: "movement_cancelled", entity: "population", entityId: values.eventId,
         businessDate: target.day, reason: values.reason, correlationId: event.id,
       });
       return event.id;
     }));
+}
+
+export async function validateDatedHarvests(store: Store, from: string, flockId: string) {
+  const rows = await store.select({
+    barnId: eggHarvests.barnId, flockId: eggHarvests.flockId, date: farmEvents.businessDate,
+  }).from(eggHarvests).innerJoin(farmEvents, eq(farmEvents.id, eggHarvests.id)).where(and(
+    isEffective(store), gte(farmEvents.businessDate, from),
+    or(eq(eggHarvests.flockId, flockId), sql`${eggHarvests.flockId} is null`),
+  )).groupBy(eggHarvests.barnId, eggHarvests.flockId, farmEvents.businessDate);
+  for (const row of rows) {
+    const { timeline: [day] } = await populationPeriodData(store, {
+      from: row.date, to: row.date, barnId: row.barnId, flockId: row.flockId ?? undefined,
+    });
+    if (!day.activeBarnIds.length) throw new ServiceError("conflict", "Mutasi membuat penempatan pada catatan panen yang sudah ada menjadi tidak sah.");
+  }
 }
 
 function sum(values: Iterable<number>) {
@@ -179,9 +198,13 @@ export async function populationPeriodData(store: Store, period: Period) {
   const timeline = datesBetween(period.from, period.to).map((day) => {
     const present = new Set<string>();
     const visitedBarns = new Set<string>();
+    const activeBarnIds = new Set<string>();
     const observe = (id: string, placement: Placement) => {
       if (period.flockId === id) visitedBarns.add(placement.barnId);
-      if (placement.alive > 0 && scoped(placement)) present.add(id);
+      if (placement.alive > 0 && scoped(placement)) {
+        present.add(id);
+        activeBarnIds.add(placement.barnId);
+      }
     };
     let deaths = 0;
     let transfers = 0;
@@ -208,7 +231,7 @@ export async function populationPeriodData(store: Store, period: Period) {
     const mixed = relevantHarvests.some(({ flockId }) => !flockId);
     const attributed = relevantHarvests.filter(({ flockId }) => !period.flockId || flockId === period.flockId);
     return {
-      day, hens: sum(alive.map(([, position]) => position.alive)), housed: sum([...present].map((id) => baselines.get(id) ?? 0)),
+      day, activeBarnIds: [...activeBarnIds], visitedBarns: [...visitedBarns], hens: sum(alive.map(([, position]) => position.alive)), housed: sum([...present].map((id) => baselines.get(id) ?? 0)),
       activeFlocks: alive.length, known: period.barnId ? observedBarns.has(period.barnId) : states.size > 0, deaths, transfers,
       eggs: sum(attributed.map(({ pieces }) => pieces)), recorded: attributed.length > 0, mixed,
       measuredGrams: attributed.length && attributed.every(({ grams, incomplete }) => grams !== null && !incomplete)

@@ -1,0 +1,2 @@
+ALTER TABLE "egg_harvests" DROP CONSTRAINT "egg_harvest_values";--> statement-breakpoint
+ALTER TABLE "egg_harvests" ADD CONSTRAINT "egg_harvest_values" CHECK ((("egg_harvests"."pieces" = 0 and "egg_harvests"."measured_grams" is not null and "egg_harvests"."measured_grams" = 0 and not "egg_harvests"."mass_incomplete") or ("egg_harvests"."pieces" > 0 and (coalesce("egg_harvests"."measured_grams", 0) > 0 or ("egg_harvests"."mass_incomplete" and "egg_harvests"."measured_grams" is null)))));

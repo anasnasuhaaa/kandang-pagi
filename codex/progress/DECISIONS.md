@@ -69,6 +69,22 @@
 - Jakarta midnight represents the business date when the source form has no time of day. Date filters accept up to 90 days per request using the projected as-of ledger. HHP includes eligible dates with flock presence, including a placement/exit day. HDP uses end-of-day count. Mixed harvests affect farm and barn totals but block attribution to the affected flock on that date.
 - Pending feed and egg metrics remain explicit until real capture is implemented. Report calculations consume measured and dated rows.
 
+## Stage 04 engineering decisions
+
+### A012 — Inventory projections and measured daily feed
+- Date/stage: 2026-11-19, Stage 04.
+- Status: Engineering assumption implementing approved stock and consumption rules.
+- Rebuild effective inventory from posted events ordered by Jakarta date and sequence under the farm write lock. Apply all recorded movements for a day before its physical close. Missing readings withhold consumption, and a later source change marks the observed day as needing verification. A close after a gap establishes physical stock for future days, while the gap's daily use is unavailable.
+- Weighted-average feed value moves with the actual grams. Allocate integer rupiah proportionally, with the last depletion taking the residual. Mixing stores the as-posted cost and can recompute effective values during historic replay. Returned feed carries its own value independently of waste. A physical increase without a purchase enters at zero incremental recorded value. Price-bearing paid purchases are Administrator only.
+- Stale closure and negative-stock checks also run for backdated writes. Barn deactivation requires existing population and feed stock to be cleared. Population changes may not invalidate dated harvest attribution.
+
+### A013 — Egg observations and amounts
+- Date/stage: 2026-11-19, Stage 04.
+- Status: Engineering assumption.
+- Permit an explicit observed zero-egg day with zero grams and complete measurement. A missing harvest remains unknown. All nonzero harvests include measured grams where possible and an explicit incomplete status with a reason otherwise.
+- Warehouse egg stock is classified by the three approved categories. Ungraded units remain per harvest lot. Payments are exact integer rupiah and must equal the calculated total. The event PK is the unique linked cash origin. Egg sales with prices are Administrator only.
+- FCR requires both physical feed readings and complete actual harvest weight across the selected active barn-days. A flock view does not attribute a shared barn feed reading to individual flocks.
+
 ## Entry template
 
 ```markdown

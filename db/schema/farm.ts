@@ -152,7 +152,7 @@ export const eggHarvests = pgTable("egg_harvests", {
   massIncomplete: boolean("mass_incomplete").notNull().default(false),
 }, (table) => [
   index("egg_harvest_scope_idx").on(table.barnId, table.flockId),
-  check("egg_harvest_values", sql`${table.pieces} > 0 and (coalesce(${table.measuredGrams}, 0) > 0 or (${table.massIncomplete} and ${table.measuredGrams} is null))`),
+  check("egg_harvest_values", sql`((${table.pieces} = 0 and ${table.measuredGrams} is not null and ${table.measuredGrams} = 0 and not ${table.massIncomplete}) or (${table.pieces} > 0 and (coalesce(${table.measuredGrams}, 0) > 0 or (${table.massIncomplete} and ${table.measuredGrams} is null))))`),
 ]);
 
 export const eggGradings = pgTable("egg_gradings", {

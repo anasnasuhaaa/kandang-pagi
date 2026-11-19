@@ -1,6 +1,10 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import axe from "axe-core";
 import { expect, test, type Page } from "@playwright/test";
+import { connectDatabase } from "../../db";
+import { businessDate } from "../../lib/format";
+import { createBarn, createFlock } from "../../server/services/population";
+import { testDatabaseUrl } from "../integration/test-database";
 const adminEmail = process.env.KANDANG_E2E_ADMIN_EMAIL!;
 const adminPassword = process.env.KANDANG_E2E_ADMIN_PASSWORD!;
 
@@ -175,4 +179,82 @@ test("pencatatan kandang, kelompok, dan kematian dari ponsel", async ({ page }) 
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "Tren populasi" })).toBeVisible();
   await expect(page.getByText("70 ekor", { exact: true })).toBeVisible();
+});
+
+test("pakan masuk, panen, sortir, dan penjualan lunas pada 320px", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 320, height: 840 });
+  await signIn(page);
+  const cookies = (await page.context().cookies()).map(({ name, value }) => `${name}=${value}`).join("; ");
+  const authHeaders = new Headers({ cookie: cookies });
+  const { client, db } = connectDatabase(testDatabaseUrl());
+  try {
+    const barn = await createBarn(authHeaders, { requestKey: randomUUID(), code: "UJI-PAKAN", name: "Kandang Produksi Uji", location: "" }, db);
+    await createFlock(authHeaders, {
+      requestKey: randomUUID(), code: "KLP-PAKAN", name: "Kelompok Produksi Uji", barnId: barn.id,
+      kind: "opening", businessDate: businessDate(), count: "100", age: "90", origin: "Peternakan Uji", reason: "Saldo awal uji",
+    }, db);
+  } finally {
+    await client.end();
+  }
+
+  async function choose(dialog: ReturnType<Page["getByRole"]>, label: string, option: string | RegExp) {
+    await dialog.getByRole("combobox", { name: label, exact: true }).click();
+    await page.getByRole("option", { name: option }).click();
+  }
+  async function confirm(dialog: ReturnType<Page["getByRole"]>) {
+    await dialog.getByRole("button", { name: "Periksa dan lanjutkan" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Konfirmasi dan simpan" }).click();
+    await expect(dialog).toBeHidden();
+  }
+
+  await page.goto("/pakan");
+  await page.getByRole("button", { name: "Tambah jenis pakan" }).click();
+  const product = page.getByRole("dialog", { name: "Tambah jenis pakan" });
+  await product.getByLabel("Kode pakan").fill("P-UJI");
+  await product.getByLabel("Nama pakan").fill("Pakan Uji");
+  await choose(product, "Jenis", "Pakan siap pakai");
+  await product.getByRole("button", { name: "Simpan pencatatan" }).click();
+  await expect(product).toBeHidden();
+  await page.getByRole("tab", { name: "Pakan masuk" }).click();
+  await page.getByRole("button", { name: "Tambah pakan masuk" }).click();
+  const receipt = page.getByRole("dialog", { name: "Tambah pakan masuk" });
+  await choose(receipt, "Pakan", "P-UJI · Pakan Uji");
+  await receipt.getByLabel("Pemasok").fill("Pemasok Uji");
+  await receipt.getByLabel("Berat (kg)").fill("120");
+  await receipt.getByLabel("Total dibayar (Rp)").fill("120.000");
+  await confirm(receipt);
+  await expect(page.getByRole("cell", { name: "Pemasok Uji" })).toBeVisible();
+
+  await page.goto("/produksi-telur");
+  await page.getByRole("button", { name: "Catat panen telur" }).click();
+  const harvest = page.getByRole("dialog", { name: "Catat panen telur" });
+  await choose(harvest, "Kandang", "Kandang Produksi Uji");
+  await choose(harvest, "Kelompok ternak", "KLP-PAKAN · Kelompok Produksi Uji");
+  await harvest.getByLabel("Jumlah panen (butir)").fill("100");
+  await harvest.getByLabel("Berat aktual (kg)").fill("5");
+  await harvest.getByRole("button", { name: "Simpan pencatatan" }).click();
+  await expect(harvest).toBeHidden();
+
+  await page.getByRole("tab", { name: "Sortir" }).click();
+  await page.getByRole("button", { name: "Catat sortir telur" }).click();
+  const grade = page.getByRole("dialog", { name: "Catat sortir telur" });
+  await choose(grade, "Lot panen belum disortir", /Kandang Produksi Uji/);
+  await grade.getByLabel("Coklat (butir)").fill("70");
+  await grade.getByLabel("Putih (butir)").fill("20");
+  await grade.getByLabel("Cacat (butir)").fill("10");
+  await confirm(grade);
+
+  await page.getByRole("tab", { name: "Penjualan" }).click();
+  await page.getByRole("button", { name: "Catat penjualan lunas" }).click();
+  const sale = page.getByRole("dialog", { name: "Catat penjualan lunas" });
+  await choose(sale, "Kategori", /Coklat/);
+  await sale.getByLabel("Jumlah (butir)").fill("25");
+  await sale.getByLabel("Harga per butir (Rp)").fill("1.000");
+  await sale.getByLabel("Pembayaran diterima (Rp)").fill("25.000");
+  await expect(sale.getByText(/Total penjualan: Rp/)).toBeVisible();
+  await confirm(sale);
+  await expect(page.getByRole("cell", { name: "Coklat 25 butir" })).toBeVisible();
+  await expect(page.getByText(/Coklat 45 · Putih 20 · Cacat 10/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
 });

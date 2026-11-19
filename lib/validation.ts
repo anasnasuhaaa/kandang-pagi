@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+z.config(z.locales.id());
+
 export const nameSchema = z.string().trim().min(2, "Masukkan minimal 2 karakter.").max(100, "Gunakan maksimal 100 karakter.");
 export const emailSchema = z.string().trim().toLowerCase().max(254, "Alamat email terlalu panjang.").pipe(z.email("Masukkan alamat email yang valid."));
 export const passwordSchema = z.string().min(12, "Gunakan minimal 12 karakter.").max(128, "Gunakan maksimal 128 karakter.");

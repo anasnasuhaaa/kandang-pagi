@@ -1,12 +1,12 @@
-import { eq, notExists } from "drizzle-orm";
+import { and, eq, notExists } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Database, Transaction } from "../../db";
-import { farmEvents } from "../../db/schema";
+import { barns, farmEvents } from "../../db/schema";
 import { jakartaStart } from "../../lib/format";
 import type { Role } from "../../lib/roles";
 import { requireRole, type Actor } from "../auth/permissions";
 import { ServiceError } from "./errors";
-import { lockScope } from "./transactions";
+import { lockScope, recordOnce, writeAudit } from "./transactions";
 
 export type Store = Database | Transaction;
 export const farmReaders: readonly Role[] = ["administrator", "pemilik", "abk"];
@@ -40,3 +40,23 @@ export function parseInput<T>(schema: { safeParse: (value: unknown) => { success
   return result.data;
 }
 
+export async function farmCommand<T extends { requestKey: string; businessDate: string; note: string }>(
+  headers: Headers, roles: readonly Role[], db: Database, kind: typeof farmEvents.$inferInsert.kind, input: T,
+  operation: (tx: Transaction, actor: Actor, event: typeof farmEvents.$inferSelect, input: T) => Promise<void>,
+) {
+  return farmWrite(headers, roles, db, async (tx, actor) => recordOnce(
+    tx, { actorId: actor.id, command: kind, requestKey: input.requestKey }, input,
+    async () => {
+      const event = await postFarmEvent(tx, actor, { kind, date: input.businessDate, requestKey: input.requestKey, note: input.note });
+      await operation(tx, actor, event, input);
+      await writeAudit(tx, { actorId: actor.id, actorRole: actor.role, entity: "farm_event", entityId: event.id, action: kind, businessDate: event.businessDate, reason: input.note });
+      return event.id;
+    },
+  ));
+}
+
+export async function assertActiveBarn(store: Store, barnId: string) {
+  const [barn] = await store.select({ id: barns.id }).from(barns).where(and(eq(barns.id, barnId), eq(barns.active, true)));
+  if (!barn) throw new ServiceError("invalid", "Pilih kandang yang aktif.");
+  return barn.id;
+}

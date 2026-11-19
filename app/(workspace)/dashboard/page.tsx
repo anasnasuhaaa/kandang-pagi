@@ -5,9 +5,11 @@ import { Suspense } from "react";
 import { PopulationFilters } from "@/components/population/filters";
 import { EmptyState, MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { categoryLabels, sortedCategories } from "@/lib/domain/production-input";
 import { populationPeriod } from "@/lib/domain/population-input";
 import { businessDate, formatDate, formatQuantity } from "@/lib/format";
 import { requireModule } from "@/server/auth/workspace";
+import { productionSummary } from "@/server/services/production-summary";
 import { populationDashboard } from "@/server/services/population";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -21,10 +23,17 @@ function percent(value: number | null) {
   return value === null ? "Data belum lengkap" : `${formatQuantity(Math.round(value * 100) / 100)}%`;
 }
 
+function weight(grams: number | null) {
+  return grams === null ? "Data belum lengkap" : `${formatQuantity(grams / 1000)} kg`;
+}
+
 async function DashboardContent({ searchParams }: Props) {
   await requireModule("dashboard");
   const period = populationPeriod(await searchParams);
-  const { timeline, rates, barnRows, flockRows } = await populationDashboard(await headers(), period);
+  const context = await headers();
+  const [{ timeline, rates, barnRows, flockRows }, production] = await Promise.all([
+    populationDashboard(context, period), productionSummary(context, period),
+  ]);
   const last = timeline[timeline.length - 1];
   const knownDays = timeline.filter(({ known }) => known);
   const max = Math.max(1, ...knownDays.map(({ hens }) => hens));
@@ -68,7 +77,15 @@ async function DashboardContent({ searchParams }: Props) {
         <MetricCard label="HDP" value={percent(rates.hdp)} detail="Berdasarkan populasi akhir hari" />
         <MetricCard label="HHP" value={period.flockId ? percent(rates.hhp) : "Pilih kelompok"} detail="Berdasarkan jumlah penempatan awal" />
         <MetricCard label="Panen telur" value={timeline.some(({ recorded }) => recorded) ? `${formatQuantity(timeline.reduce((total, day) => total + day.eggs, 0))} butir` : "Data belum lengkap"} detail="Catatan panen pada periode ini" />
-        <MetricCard label="Konsumsi pakan dan FCR" value="Data belum lengkap" detail="Menunggu pencatatan pakan dan berat panen" />
+        <MetricCard label="Berat panen" value={weight(production.eggGrams)} detail="Timbangan aktual termasuk telur cacat" />
+        <MetricCard label="Pakan dikonsumsi" value={weight(production.feedGrams)} detail={period.flockId ? "Pengukuran tersedia per kandang" : `${production.completedDays} dari ${production.expectedDays} hari memiliki pengukuran lengkap`} />
+        <MetricCard label="FCR" value={production.fcr === null ? "Data belum lengkap" : formatQuantity(production.fcr)} detail="Kg pakan per kg telur" />
+        {!period.barnId && !period.flockId && <>
+          <MetricCard label="Stok pakan gudang" value={weight(production.warehouseGrams)} detail={formatDate(period.to)} />
+          <MetricCard label="Stok telur tersortir" value={formatQuantity(sortedCategories.reduce((sum, category) => sum + production.eggStock[category], 0))}
+            detail={sortedCategories.map((category) => `${categoryLabels[category]} ${formatQuantity(production.eggStock[category])}`).join(" · ")} />
+        </>}
+        {!period.flockId && <MetricCard label="Sisa pakan di kandang" value={weight(production.barnGrams)} detail={formatDate(period.to)} />}
       </section>
     </>
   );

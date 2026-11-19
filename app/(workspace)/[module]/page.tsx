@@ -22,7 +22,7 @@ const pending: Record<Module["slug"], string> = {
 };
 
 export function generateStaticParams() {
-  return modules.filter(({ slug }) => !(["pengaturan", "dashboard", "populasi"].includes(slug))).map(({ slug }) => ({ module: slug }));
+  return modules.filter(({ slug }) => !(["pengaturan", "dashboard", "populasi", "pakan", "produksi-telur"].includes(slug))).map(({ slug }) => ({ module: slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
