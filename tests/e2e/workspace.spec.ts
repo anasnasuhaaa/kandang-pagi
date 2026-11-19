@@ -1,19 +1,30 @@
+import { randomBytes, randomUUID } from "node:crypto";
 import axe from "axe-core";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+const adminEmail = process.env.KANDANG_E2E_ADMIN_EMAIL!;
+const adminPassword = process.env.KANDANG_E2E_ADMIN_PASSWORD!;
+
+async function signIn(page: Page, email = adminEmail, password = adminPassword) {
+  await page.goto("/masuk");
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Kata sandi", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Masuk", exact: true }).click();
+  await expect(page).toHaveURL("/dashboard");
+  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+}
 
 const modules = [
   ["Dashboard", "/dashboard"], ["Populasi Ternak", "/populasi"],
   ["Pakan", "/pakan"], ["Produksi Telur", "/produksi-telur"],
   ["Kesehatan & Vaksin", "/kesehatan"], ["Keuangan", "/keuangan"],
-  ["Reseller", "/reseller"], ["Laporan", "/laporan"], ["Pengaturan", "/pengaturan"],
+  ["Laporan", "/laporan"], ["Pengaturan", "/pengaturan"],
 ];
 
 for (const width of [320, 375, 768, 1440]) {
   test(`navigasi, tema, dan lebar halaman ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 840 });
     await page.emulateMedia({ colorScheme: "light" });
-    await page.goto("/");
-    await expect(page).toHaveURL("/dashboard");
+    await signIn(page);
     await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
     await expect(page.getByText("Modul sedang disiapkan")).toBeVisible();
     expect(await page.evaluate(async () => {
@@ -27,7 +38,7 @@ for (const width of [320, 375, 768, 1440]) {
       await page.keyboard.press("Enter");
     }
     const nav = page.getByRole("navigation", { name: "Modul utama" });
-    await expect(nav.getByRole("link")).toHaveCount(9);
+    await expect(nav.getByRole("link")).toHaveCount(8);
     for (const [name, url] of modules) {
       await expect(nav.getByRole("link", { name, exact: true })).toHaveAttribute("href", url);
     }
@@ -46,6 +57,7 @@ for (const width of [320, 375, 768, 1440]) {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
       expect(overflow, url).toBe(false);
     }
+    await expect(page.locator("html")).not.toHaveClass(/dark/);
     await page.getByRole("button", { name: "Ganti tema terang atau gelap" }).click();
     await expect(page.locator("html")).toHaveClass(/dark/);
     await page.reload();
@@ -58,7 +70,7 @@ for (const width of [320, 375, 768, 1440]) {
 test("aksesibilitas warna dan struktur di tema terang dan gelap", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ colorScheme: "light" });
-  await page.goto("/dashboard");
+  await signIn(page);
   for (const theme of ["light", "dark"]) {
     await expect(page.locator("html")).toHaveClass(new RegExp(theme));
     await page.addScriptTag({ content: axe.source });
@@ -70,4 +82,53 @@ test("aksesibilitas warna dan struktur di tema terang dan gelap", async ({ page 
     expect(results.violations, theme).toEqual([]);
     await page.getByRole("button", { name: "Ganti tema terang atau gelap" }).click();
   }
+});
+
+test("akun baru, aktivasi manual, izin ABK dan keluar", async ({ page, browser, request }) => {
+  const rejected = await request.post("/api/auth/sign-up/email", { data: { email: "public@example.test", name: "Public" } });
+  expect(rejected.status()).toBe(404);
+  await page.goto("/keuangan");
+  await expect(page).toHaveURL("/masuk");
+  await signIn(page);
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/pengaturan?tab=akun");
+  await page.getByRole("button", { name: "Tambah akun" }).click();
+  const dialog = page.getByRole("dialog", { name: "Tambah akun" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Buat akun" }).click();
+  await expect(dialog.getByText("Masukkan minimal 2 karakter.")).toBeVisible();
+  const operatorEmail = `operator-${randomUUID().slice(0, 8)}@example.test`;
+  await dialog.getByLabel("Nama pengguna").fill("Petugas uji");
+  await dialog.getByLabel("Email pengguna").fill(operatorEmail);
+  await dialog.getByRole("combobox", { name: "Peran" }).click();
+  await page.getByRole("option", { name: "ABK", exact: true }).click();
+  await dialog.getByRole("button", { name: "Buat akun" }).click();
+  const link = await dialog.getByLabel("Tautan akses akun").inputValue();
+  expect(new URL(link).pathname).toBe("/akses");
+  await dialog.getByRole("button", { name: "Tutup", exact: true }).click();
+  await expect(page.getByText("Menunggu aktivasi")).toBeVisible();
+
+  const recipient = await browser.newContext();
+  const operator = await recipient.newPage();
+  const preview = await recipient.request.get(new URL(link).origin + "/akses");
+  expect(preview.headers()["referrer-policy"]).toBe("no-referrer");
+  await operator.goto(link);
+  const secret = randomBytes(20).toString("base64url");
+  await operator.getByLabel("Kata sandi baru", { exact: true }).fill(secret);
+  await operator.getByLabel("Ulangi kata sandi").fill(secret);
+  await operator.getByRole("button", { name: "Simpan kata sandi" }).click();
+  await expect(operator).toHaveURL("/masuk");
+  await signIn(operator, operatorEmail, secret);
+  await expect(operator.getByRole("link", { name: "Keuangan" })).toHaveCount(0);
+  await operator.goto("/keuangan");
+  await expect(operator).toHaveURL("/dashboard");
+  await operator.goto("/pengaturan?tab=akun");
+  await expect(operator.getByRole("tab", { name: "Akun pengguna" })).toHaveCount(0);
+  await expect(operator.getByRole("heading", { name: "Profil dan tampilan" })).toBeVisible();
+  await operator.getByRole("button", { name: "Menu akun" }).click();
+  await operator.getByRole("menuitem", { name: "Keluar" }).click();
+  await expect(operator).toHaveURL("/masuk");
+  await operator.goto("/dashboard");
+  await expect(operator).toHaveURL("/masuk");
+  await recipient.close();
 });

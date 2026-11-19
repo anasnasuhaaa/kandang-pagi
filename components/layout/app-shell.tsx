@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { Egg, Moon, Sun, UserRound } from "lucide-react";
+import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { roleLabels, type Theme } from "@/lib/roles";
+import { saveThemeAction } from "@/server/auth/actions";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -15,7 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 import { canViewModule, modules, type Role } from "@/lib/navigation";
 
-export type WorkspaceUser = { name: string; role: Role };
+export type WorkspaceUser = { name: string; role: Role; theme: Theme };
 
 function Navigation({ user }: { user?: WorkspaceUser }) {
   const pathname = usePathname();
@@ -58,19 +63,63 @@ function Navigation({ user }: { user?: WorkspaceUser }) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-3">
-        <div className="flex items-center gap-3 rounded-lg px-2 py-1.5">
-          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground"><UserRound className="size-4" aria-hidden="true" /></span>
-          <span className="truncate text-sm text-muted-foreground">{user?.name ?? "Belum masuk"}</span>
-        </div>
+        {user && <AccountMenu user={user} close={setOpenMobile} />}
       </SidebarFooter>
     </Sidebar>
   );
 }
 
+function AccountMenu({ user, close }: { user: WorkspaceUser; close: (open: boolean) => void }) {
+  const router = useRouter();
+
+  async function signOut() {
+    try {
+      const response = await fetch("/api/auth/sign-out", { method: "POST" });
+      if (!response.ok) throw new Error("Keluar gagal");
+      router.replace("/masuk");
+      router.refresh();
+    } catch {
+      toast.error("Gagal keluar. Coba lagi.");
+    }
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="ghost" className="h-12 w-full justify-start px-2" aria-label="Menu akun" />}>
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground"><UserRound className="size-4" aria-hidden="true" /></span>
+        <span className="min-w-0 flex-1 text-left">
+          <span className="block truncate">{user.name}</span>
+          <span className="block truncate text-xs text-muted-foreground">{roleLabels[user.role]}</span>
+        </span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="start" className="min-w-44">
+        <DropdownMenuItem render={<Link href="/pengaturan" onClick={() => close(false)} />}>Profil</DropdownMenuItem>
+        <DropdownMenuItem onClick={signOut}>Keluar</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
+  const [pending, setPending] = useState(false);
+
+  async function toggle() {
+    const value = resolvedTheme === "dark" ? "light" : "dark";
+    setPending(true);
+    try {
+      const result = await saveThemeAction(value);
+      if (result.ok) setTheme(value);
+      else toast.error(result.message);
+    } catch {
+      toast.error("Tema gagal disimpan.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
-    <Button type="button" size="icon" variant="outline" className="size-9" aria-label="Ganti tema terang atau gelap" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+    <Button type="button" size="icon" variant="outline" className="size-9" aria-label="Ganti tema terang atau gelap" onClick={toggle} disabled={pending}>
       <Moon aria-hidden="true" className="dark:hidden" />
       <Sun aria-hidden="true" className="hidden dark:block" />
     </Button>

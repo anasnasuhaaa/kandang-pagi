@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Layers3 } from "lucide-react";
 import { notFound } from "next/navigation";
-import { EmptyState, ModuleHeader } from "@/components/shared/module";
+import { EmptyState, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { modules, type Module } from "@/lib/navigation";
+
+import { requireModule } from "@/server/auth/workspace";
 
 type Props = { params: Promise<{ module: string }> };
 
@@ -19,7 +22,7 @@ const pending: Record<Module["slug"], string> = {
 };
 
 export function generateStaticParams() {
-  return modules.map(({ slug }) => ({ module: slug }));
+  return modules.filter(({ slug }) => slug !== "pengaturan").map(({ slug }) => ({ module: slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -32,6 +35,11 @@ export default async function ModulePage({ params }: Props) {
   const { module } = await params;
   const item = modules.find(({ slug }) => slug === module);
   if (!item) notFound();
+  return <Suspense fallback={<ModuleSkeleton />}><ModuleContent item={item} /></Suspense>;
+}
+
+async function ModuleContent({ item }: { item: Module }) {
+  await requireModule(item.slug);
   return (
     <>
       <ModuleHeader title={item.title} description={item.description} icon={item.icon} />

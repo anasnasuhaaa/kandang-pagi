@@ -6,9 +6,9 @@
 
 - Project: Kandang Pagi real client farm management web application.
 - Source repository: **already initialized by user**; do not recreate Git/Next.js.
-- Current stage: **01 complete**.
-- Last completed stage: **01 — Foundation**.
-- Next stage: **02 — Database and Authentication** (`codex/prompts/02-database-and-auth.md`).
+- Current stage: **02 complete**.
+- Last completed stage: **02 — Database and authentication**.
+- Next stage: **03 — Dashboard and Livestock** (`codex/prompts/03-dashboard-and-livestock.md`).
 - All nine core modules are in MVP scope.
 - Git policy: local stage commits only; **NEVER PUSH**.
 
@@ -16,8 +16,8 @@
 
 | Stage | Status | Report | Commit hash | Main blocker |
 |---|---|---|---|---|
-| 01 Foundation | Complete | [Report](reports/STAGE_01_REPORT.md) | Commit containing report¹ | — |
-| 02 Database/Auth | Not started | — | — | — |
+| 01 Foundation | Complete | [Report](reports/STAGE_01_REPORT.md) | `fff0439` | — |
+| 02 Database/Auth | Complete | [Report](reports/STAGE_02_REPORT.md) | Commit containing report¹ | — |
 | 03 Dashboard/Populasi | Not started | — | — | — |
 | 04 Pakan/Telur | Not started | — | — | — |
 | 05 Kesehatan/Keuangan | Not started | — | — | — |
@@ -29,11 +29,11 @@
 - Actual versions: Next.js 16.4.6, React 19.3.0, Drizzle 0.45.4, postgres.js 4.1.1, Base UI 1.9.0, shadcn 4.23.0, TypeScript 5.9.3.
 - npm 9.2.0, Node.js 22.22.1, existing npm lockfile.
 - shadcn uses `base-nova`; generated primitives and the shared shell are in place.
-- Dev database: **not verified**.
+- Verified migrations and account lifecycle on isolated local PostgreSQL 18.6. A dedicated development Neon URL is still required for Neon-based development.
 - Production DB separation: **not verified**.
 - ImageKit names present: `IMAGEKIT_PRIVATE_KEY`, `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`, `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT`.
-- Better Auth: scheduled for Stage 02.
-- ¹ Resolve the Stage 01 commit with `git log -1 --format=%h -- codex/progress/reports/STAGE_01_REPORT.md`.
+- Better Auth 1.7.20 and its Drizzle adapter are installed and verified.
+- ¹ Resolve the Stage 02 commit with `git log -1 --format=%h -- codex/progress/reports/STAGE_02_REPORT.md`.
 
 ## Approved decisions snapshot
 
@@ -54,5 +54,5 @@
 ## Blockers and open questions
 
 - Direct Google Fonts downloads timed out on this workstation. Stage 01 built through a temporary Poppins mirror and verified the resulting production bundle in Chromium. The tracked build uses the standard Next.js Google Fonts integration.
-- No PostgreSQL connection is configured in `.env.local`. Local disposable PostgreSQL tooling is available for Stage 02 verification.
+- Development and production Neon endpoints have not been inspected. Tests used private disposable local databases.
 - Unspecified operational details are documented safe defaults in context, not a request to start another broad decision session.

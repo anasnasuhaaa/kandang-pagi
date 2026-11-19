@@ -1,0 +1,4062 @@
+{
+  "id": "29254a16-23b5-4cd4-ae5d-d2c935e44434",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.account": {
+      "name": "account",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "account_user_idx": {
+          "name": "account_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "account_user_id_user_id_fk": {
+          "name": "account_user_id_user_id_fk",
+          "tableFrom": "account",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rate_limit": {
+      "name": "rate_limit",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_request": {
+          "name": "last_request",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "rate_limit_key_unique": {
+          "name": "rate_limit_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "key"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.session": {
+      "name": "session",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "impersonated_by": {
+          "name": "impersonated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "session_user_idx": {
+          "name": "session_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_user_id_user_id_fk": {
+          "name": "session_user_id_user_id_fk",
+          "tableFrom": "session",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "session_token_unique": {
+          "name": "session_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user": {
+      "name": "user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'abk'"
+        },
+        "banned": {
+          "name": "banned",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "ban_reason": {
+          "name": "ban_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ban_expires": {
+          "name": "ban_expires",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "theme": {
+          "name": "theme",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'system'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "user_role_check": {
+          "name": "user_role_check",
+          "value": "\"user\".\"role\" in ('administrator', 'pemilik', 'abk', 'reseller')"
+        },
+        "user_status_check": {
+          "name": "user_status_check",
+          "value": "\"user\".\"status\" in ('pending', 'active', 'suspended')"
+        },
+        "user_theme_check": {
+          "name": "user_theme_check",
+          "value": "\"user\".\"theme\" in ('system', 'light', 'dark')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.verification": {
+      "name": "verification",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "verification_identifier_idx": {
+          "name": "verification_identifier_idx",
+          "columns": [
+            {
+              "expression": "identifier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.barn_feed_closes": {
+      "name": "barn_feed_closes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "barn_id": {
+          "name": "barn_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "business_date": {
+          "name": "business_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observed_grams": {
+          "name": "observed_grams",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "barn_feed_closes_id_farm_events_id_fk": {
+          "name": "barn_feed_closes_id_farm_events_id_fk",
+          "tableFrom": "barn_feed_closes",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "barn_feed_closes_barn_id_barns_id_fk": {
+          "name": "barn_feed_closes_barn_id_barns_id_fk",
+          "tableFrom": "barn_feed_closes",
+          "tableTo": "barns",
+          "columnsFrom": [
+            "barn_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "barn_feed_closes_product_id_feed_products_id_fk": {
+          "name": "barn_feed_closes_product_id_feed_products_id_fk",
+          "tableFrom": "barn_feed_closes",
+          "tableTo": "feed_products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "daily_feed_close_revision": {
+          "name": "daily_feed_close_revision",
+          "nullsNotDistinct": false,
+          "columns": [
+            "barn_id",
+            "product_id",
+            "business_date",
+            "revision"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "daily_feed_close_values": {
+          "name": "daily_feed_close_values",
+          "value": "\"barn_feed_closes\".\"observed_grams\" >= 0 and \"barn_feed_closes\".\"revision\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.barns": {
+      "name": "barns",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "barns_code_unique": {
+          "name": "barns_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.egg_gradings": {
+      "name": "egg_gradings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "harvest_id": {
+          "name": "harvest_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "brown": {
+          "name": "brown",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "white": {
+          "name": "white",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "defective": {
+          "name": "defective",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "egg_grading_lot_idx": {
+          "name": "egg_grading_lot_idx",
+          "columns": [
+            {
+              "expression": "harvest_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "egg_gradings_id_farm_events_id_fk": {
+          "name": "egg_gradings_id_farm_events_id_fk",
+          "tableFrom": "egg_gradings",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "egg_gradings_harvest_id_egg_harvests_id_fk": {
+          "name": "egg_gradings_harvest_id_egg_harvests_id_fk",
+          "tableFrom": "egg_gradings",
+          "tableTo": "egg_harvests",
+          "columnsFrom": [
+            "harvest_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "egg_grading_totals": {
+          "name": "egg_grading_totals",
+          "value": "\"egg_gradings\".\"brown\" >= 0 and \"egg_gradings\".\"white\" >= 0 and \"egg_gradings\".\"defective\" >= 0 and (\"egg_gradings\".\"brown\"::bigint + \"egg_gradings\".\"white\" + \"egg_gradings\".\"defective\") > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.egg_harvests": {
+      "name": "egg_harvests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "barn_id": {
+          "name": "barn_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "flock_id": {
+          "name": "flock_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pieces": {
+          "name": "pieces",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "measured_grams": {
+          "name": "measured_grams",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mass_incomplete": {
+          "name": "mass_incomplete",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {
+        "egg_harvest_scope_idx": {
+          "name": "egg_harvest_scope_idx",
+          "columns": [
+            {
+              "expression": "barn_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "flock_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "egg_harvests_id_farm_events_id_fk": {
+          "name": "egg_harvests_id_farm_events_id_fk",
+          "tableFrom": "egg_harvests",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "egg_harvests_barn_id_barns_id_fk": {
+          "name": "egg_harvests_barn_id_barns_id_fk",
+          "tableFrom": "egg_harvests",
+          "tableTo": "barns",
+          "columnsFrom": [
+            "barn_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "egg_harvests_flock_id_flocks_id_fk": {
+          "name": "egg_harvests_flock_id_flocks_id_fk",
+          "tableFrom": "egg_harvests",
+          "tableTo": "flocks",
+          "columnsFrom": [
+            "flock_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "egg_harvest_values": {
+          "name": "egg_harvest_values",
+          "value": "\"egg_harvests\".\"pieces\" > 0 and (coalesce(\"egg_harvests\".\"measured_grams\", 0) > 0 or (\"egg_harvests\".\"mass_incomplete\" and \"egg_harvests\".\"measured_grams\" is null))"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.egg_sale_lines": {
+      "name": "egg_sale_lines",
+      "schema": "",
+      "columns": {
+        "sale_id": {
+          "name": "sale_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "egg_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pieces": {
+          "name": "pieces",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_price_idr": {
+          "name": "unit_price_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "egg_sale_lines_sale_id_egg_sales_id_fk": {
+          "name": "egg_sale_lines_sale_id_egg_sales_id_fk",
+          "tableFrom": "egg_sale_lines",
+          "tableTo": "egg_sales",
+          "columnsFrom": [
+            "sale_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "egg_sale_lines_sale_id_category_pk": {
+          "name": "egg_sale_lines_sale_id_category_pk",
+          "columns": [
+            "sale_id",
+            "category"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "egg_sale_classified_paid": {
+          "name": "egg_sale_classified_paid",
+          "value": "\"egg_sale_lines\".\"category\" <> 'ungraded' and \"egg_sale_lines\".\"pieces\" > 0 and \"egg_sale_lines\".\"unit_price_idr\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.egg_sales": {
+      "name": "egg_sales",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "buyer": {
+          "name": "buyer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "paid_idr": {
+          "name": "paid_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "egg_sales_id_farm_events_id_fk": {
+          "name": "egg_sales_id_farm_events_id_fk",
+          "tableFrom": "egg_sales",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "egg_sale_paid_positive": {
+          "name": "egg_sale_paid_positive",
+          "value": "\"egg_sales\".\"paid_idr\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.egg_stock_movements": {
+      "name": "egg_stock_movements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "harvest_id": {
+          "name": "harvest_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "egg_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delta_pieces": {
+          "name": "delta_pieces",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "egg_stock_scope_idx": {
+          "name": "egg_stock_scope_idx",
+          "columns": [
+            {
+              "expression": "category",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "harvest_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "egg_stock_event_idx": {
+          "name": "egg_stock_event_idx",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "egg_stock_movements_event_id_farm_events_id_fk": {
+          "name": "egg_stock_movements_event_id_farm_events_id_fk",
+          "tableFrom": "egg_stock_movements",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "egg_stock_movements_harvest_id_egg_harvests_id_fk": {
+          "name": "egg_stock_movements_harvest_id_egg_harvests_id_fk",
+          "tableFrom": "egg_stock_movements",
+          "tableTo": "egg_harvests",
+          "columnsFrom": [
+            "harvest_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "egg_stock_movement_nonzero": {
+          "name": "egg_stock_movement_nonzero",
+          "value": "\"egg_stock_movements\".\"delta_pieces\" <> 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.farm_cash": {
+      "name": "farm_cash",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "cash_direction",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delta_idr": {
+          "name": "delta_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reverses_id": {
+          "name": "reverses_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "farm_cash_id_farm_events_id_fk": {
+          "name": "farm_cash_id_farm_events_id_fk",
+          "tableFrom": "farm_cash",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "farm_cash_reverses_id_farm_cash_id_fk": {
+          "name": "farm_cash_reverses_id_farm_cash_id_fk",
+          "tableFrom": "farm_cash",
+          "tableTo": "farm_cash",
+          "columnsFrom": [
+            "reverses_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "farm_cash_reverses_id_unique": {
+          "name": "farm_cash_reverses_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "reverses_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "farm_cash_direction_values": {
+          "name": "farm_cash_direction_values",
+          "value": "\n    (\"farm_cash\".\"direction\" = 'income' and \"farm_cash\".\"delta_idr\" > 0 and \"farm_cash\".\"reverses_id\" is null) or\n    (\"farm_cash\".\"direction\" = 'expense' and \"farm_cash\".\"delta_idr\" < 0 and \"farm_cash\".\"reverses_id\" is null) or\n    (\"farm_cash\".\"direction\" = 'opening' and \"farm_cash\".\"delta_idr\" >= 0 and \"farm_cash\".\"reverses_id\" is null) or\n    (\"farm_cash\".\"direction\" = 'reversal' and \"farm_cash\".\"reverses_id\" is not null)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.farm_events": {
+      "name": "farm_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "farm_event_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "business_date": {
+          "name": "business_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_key": {
+          "name": "request_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "reverses_id": {
+          "name": "reverses_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "farm_events_date_idx": {
+          "name": "farm_events_date_idx",
+          "columns": [
+            {
+              "expression": "business_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sequence",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "farm_events_kind_date_idx": {
+          "name": "farm_events_kind_date_idx",
+          "columns": [
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "business_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "farm_events_actor_id_user_id_fk": {
+          "name": "farm_events_actor_id_user_id_fk",
+          "tableFrom": "farm_events",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "farm_events_reverses_id_farm_events_id_fk": {
+          "name": "farm_events_reverses_id_farm_events_id_fk",
+          "tableFrom": "farm_events",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "reverses_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "farm_events_sequence_unique": {
+          "name": "farm_events_sequence_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sequence"
+          ]
+        },
+        "farm_events_reverses_id_unique": {
+          "name": "farm_events_reverses_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "reverses_id"
+          ]
+        },
+        "farm_event_idempotency": {
+          "name": "farm_event_idempotency",
+          "nullsNotDistinct": false,
+          "columns": [
+            "actor_id",
+            "kind",
+            "request_key"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "farm_events_reversal_link": {
+          "name": "farm_events_reversal_link",
+          "value": "(\"farm_events\".\"kind\" = 'reversal') = (\"farm_events\".\"reverses_id\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.feed_mix_inputs": {
+      "name": "feed_mix_inputs",
+      "schema": "",
+      "columns": {
+        "mix_id": {
+          "name": "mix_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grams": {
+          "name": "grams",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "feed_mix_inputs_mix_id_feed_mixes_id_fk": {
+          "name": "feed_mix_inputs_mix_id_feed_mixes_id_fk",
+          "tableFrom": "feed_mix_inputs",
+          "tableTo": "feed_mixes",
+          "columnsFrom": [
+            "mix_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "feed_mix_inputs_product_id_feed_products_id_fk": {
+          "name": "feed_mix_inputs_product_id_feed_products_id_fk",
+          "tableFrom": "feed_mix_inputs",
+          "tableTo": "feed_products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "feed_mix_inputs_mix_id_product_id_pk": {
+          "name": "feed_mix_inputs_mix_id_product_id_pk",
+          "columns": [
+            "mix_id",
+            "product_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "feed_mix_input_positive": {
+          "name": "feed_mix_input_positive",
+          "value": "\"feed_mix_inputs\".\"grams\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.feed_mixes": {
+      "name": "feed_mixes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "output_grams": {
+          "name": "output_grams",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shrinkage_grams": {
+          "name": "shrinkage_grams",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "feed_mixes_id_farm_events_id_fk": {
+          "name": "feed_mixes_id_farm_events_id_fk",
+          "tableFrom": "feed_mixes",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "feed_mixes_product_id_feed_products_id_fk": {
+          "name": "feed_mixes_product_id_feed_products_id_fk",
+          "tableFrom": "feed_mixes",
+          "tableTo": "feed_products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "feed_mixes_amount_check": {
+          "name": "feed_mixes_amount_check",
+          "value": "\"feed_mixes\".\"output_grams\" > 0 and \"feed_mixes\".\"shrinkage_grams\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.feed_movements": {
+      "name": "feed_movements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "barn_id": {
+          "name": "barn_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "feed_movement_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delta_grams": {
+          "name": "delta_grams",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value_idr": {
+          "name": "value_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "feed_event_idx": {
+          "name": "feed_event_idx",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "feed_stock_idx": {
+          "name": "feed_stock_idx",
+          "columns": [
+            {
+              "expression": "product_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "barn_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "feed_movements_event_id_farm_events_id_fk": {
+          "name": "feed_movements_event_id_farm_events_id_fk",
+          "tableFrom": "feed_movements",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "feed_movements_product_id_feed_products_id_fk": {
+          "name": "feed_movements_product_id_feed_products_id_fk",
+          "tableFrom": "feed_movements",
+          "tableTo": "feed_products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "feed_movements_barn_id_barns_id_fk": {
+          "name": "feed_movements_barn_id_barns_id_fk",
+          "tableFrom": "feed_movements",
+          "tableTo": "barns",
+          "columnsFrom": [
+            "barn_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "feed_delta_nonzero": {
+          "name": "feed_delta_nonzero",
+          "value": "\"feed_movements\".\"delta_grams\" <> 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.feed_products": {
+      "name": "feed_products",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "feed_product_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "feed_products_code_unique": {
+          "name": "feed_products_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.feed_receipts": {
+      "name": "feed_receipts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "supplier": {
+          "name": "supplier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grams": {
+          "name": "grams",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_idr": {
+          "name": "total_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "feed_receipts_id_farm_events_id_fk": {
+          "name": "feed_receipts_id_farm_events_id_fk",
+          "tableFrom": "feed_receipts",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "feed_receipts_product_id_feed_products_id_fk": {
+          "name": "feed_receipts_product_id_feed_products_id_fk",
+          "tableFrom": "feed_receipts",
+          "tableTo": "feed_products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "feed_receipts_amount_check": {
+          "name": "feed_receipts_amount_check",
+          "value": "\"feed_receipts\".\"grams\" > 0 and \"feed_receipts\".\"total_idr\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.flocks": {
+      "name": "flocks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opening_barn_id": {
+          "name": "opening_barn_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origin": {
+          "name": "origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "placed_on": {
+          "name": "placed_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "initial_hen_housed": {
+          "name": "initial_hen_housed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "initial_age_days": {
+          "name": "initial_age_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "flocks_opening_barn_id_barns_id_fk": {
+          "name": "flocks_opening_barn_id_barns_id_fk",
+          "tableFrom": "flocks",
+          "tableTo": "barns",
+          "columnsFrom": [
+            "opening_barn_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "flocks_code_unique": {
+          "name": "flocks_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "flock_positive_hen_housed": {
+          "name": "flock_positive_hen_housed",
+          "value": "\"flocks\".\"initial_hen_housed\" > 0"
+        },
+        "flock_nonnegative_age": {
+          "name": "flock_nonnegative_age",
+          "value": "\"flocks\".\"initial_age_days\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.health_events": {
+      "name": "health_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "flock_id": {
+          "name": "flock_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "barn_id": {
+          "name": "barn_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "incident": {
+          "name": "incident",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observations": {
+          "name": "observations",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "treatment": {
+          "name": "treatment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "responsible_id": {
+          "name": "responsible_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "health_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        }
+      },
+      "indexes": {
+        "health_flock_idx": {
+          "name": "health_flock_idx",
+          "columns": [
+            {
+              "expression": "flock_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "barn_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "health_events_id_farm_events_id_fk": {
+          "name": "health_events_id_farm_events_id_fk",
+          "tableFrom": "health_events",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "health_events_flock_id_flocks_id_fk": {
+          "name": "health_events_flock_id_flocks_id_fk",
+          "tableFrom": "health_events",
+          "tableTo": "flocks",
+          "columnsFrom": [
+            "flock_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "health_events_barn_id_barns_id_fk": {
+          "name": "health_events_barn_id_barns_id_fk",
+          "tableFrom": "health_events",
+          "tableTo": "barns",
+          "columnsFrom": [
+            "barn_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "health_events_responsible_id_user_id_fk": {
+          "name": "health_events_responsible_id_user_id_fk",
+          "tableFrom": "health_events",
+          "tableTo": "user",
+          "columnsFrom": [
+            "responsible_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.population_movements": {
+      "name": "population_movements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "flock_id": {
+          "name": "flock_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "population_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "from_barn_id": {
+          "name": "from_barn_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "to_barn_id": {
+          "name": "to_barn_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "population_flock_idx": {
+          "name": "population_flock_idx",
+          "columns": [
+            {
+              "expression": "flock_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "population_single_placement": {
+          "name": "population_single_placement",
+          "columns": [
+            {
+              "expression": "flock_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"population_movements\".\"kind\" in ('opening', 'arrival')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "population_movements_id_farm_events_id_fk": {
+          "name": "population_movements_id_farm_events_id_fk",
+          "tableFrom": "population_movements",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "population_movements_flock_id_flocks_id_fk": {
+          "name": "population_movements_flock_id_flocks_id_fk",
+          "tableFrom": "population_movements",
+          "tableTo": "flocks",
+          "columnsFrom": [
+            "flock_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "population_movements_from_barn_id_barns_id_fk": {
+          "name": "population_movements_from_barn_id_barns_id_fk",
+          "tableFrom": "population_movements",
+          "tableTo": "barns",
+          "columnsFrom": [
+            "from_barn_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "population_movements_to_barn_id_barns_id_fk": {
+          "name": "population_movements_to_barn_id_barns_id_fk",
+          "tableFrom": "population_movements",
+          "tableTo": "barns",
+          "columnsFrom": [
+            "to_barn_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "population_positive_movement": {
+          "name": "population_positive_movement",
+          "value": "\"population_movements\".\"count\" > 0"
+        },
+        "population_movement_route": {
+          "name": "population_movement_route",
+          "value": "\n    (\"population_movements\".\"kind\" in ('opening','arrival') and \"population_movements\".\"from_barn_id\" is null and \"population_movements\".\"to_barn_id\" is not null) or\n    (\"population_movements\".\"kind\" in ('death','cull','exit') and \"population_movements\".\"from_barn_id\" is not null and \"population_movements\".\"to_barn_id\" is null) or\n    (\"population_movements\".\"kind\" = 'transfer' and \"population_movements\".\"from_barn_id\" is not null and \"population_movements\".\"to_barn_id\" is not null and \"population_movements\".\"from_barn_id\" <> \"population_movements\".\"to_barn_id\")\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.quarantines": {
+      "name": "quarantines",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "flock_id": {
+          "name": "flock_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "barn_id": {
+          "name": "barn_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_on": {
+          "name": "started_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ended_on": {
+          "name": "ended_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "quarantine_flock_dates_idx": {
+          "name": "quarantine_flock_dates_idx",
+          "columns": [
+            {
+              "expression": "flock_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "started_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "quarantines_id_farm_events_id_fk": {
+          "name": "quarantines_id_farm_events_id_fk",
+          "tableFrom": "quarantines",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "quarantines_flock_id_flocks_id_fk": {
+          "name": "quarantines_flock_id_flocks_id_fk",
+          "tableFrom": "quarantines",
+          "tableTo": "flocks",
+          "columnsFrom": [
+            "flock_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "quarantines_barn_id_barns_id_fk": {
+          "name": "quarantines_barn_id_barns_id_fk",
+          "tableFrom": "quarantines",
+          "tableTo": "barns",
+          "columnsFrom": [
+            "barn_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "quarantine_date_order": {
+          "name": "quarantine_date_order",
+          "value": "\"quarantines\".\"ended_on\" is null or \"quarantines\".\"ended_on\" >= \"quarantines\".\"started_on\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.transaction_receipts": {
+      "name": "transaction_receipts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "cash_id": {
+          "name": "cash_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploaded_by": {
+          "name": "uploaded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime": {
+          "name": "mime",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "receipt_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "replaced_by": {
+          "name": "replaced_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "cash_single_active_receipt": {
+          "name": "cash_single_active_receipt",
+          "columns": [
+            {
+              "expression": "cash_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"transaction_receipts\".\"status\" = 'active'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "transaction_receipts_cash_id_farm_cash_id_fk": {
+          "name": "transaction_receipts_cash_id_farm_cash_id_fk",
+          "tableFrom": "transaction_receipts",
+          "tableTo": "farm_cash",
+          "columnsFrom": [
+            "cash_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "transaction_receipts_uploaded_by_user_id_fk": {
+          "name": "transaction_receipts_uploaded_by_user_id_fk",
+          "tableFrom": "transaction_receipts",
+          "tableTo": "user",
+          "columnsFrom": [
+            "uploaded_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "transaction_receipts_replaced_by_transaction_receipts_id_fk": {
+          "name": "transaction_receipts_replaced_by_transaction_receipts_id_fk",
+          "tableFrom": "transaction_receipts",
+          "tableTo": "transaction_receipts",
+          "columnsFrom": [
+            "replaced_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "transaction_receipts_file_id_unique": {
+          "name": "transaction_receipts_file_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_id"
+          ]
+        },
+        "transaction_receipts_file_path_unique": {
+          "name": "transaction_receipts_file_path_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_path"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "receipt_file_limits": {
+          "name": "receipt_file_limits",
+          "value": "\"transaction_receipts\".\"size_bytes\" between 1 and 2097152 and \"transaction_receipts\".\"mime\" in ('image/jpeg','image/png','image/webp')"
+        },
+        "receipt_file_required": {
+          "name": "receipt_file_required",
+          "value": "\"transaction_receipts\".\"status\" not in ('active', 'replaced') or \"transaction_receipts\".\"file_id\" is not null"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.vaccination_executions": {
+      "name": "vaccination_executions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "schedule_id": {
+          "name": "schedule_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "performer_id": {
+          "name": "performer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "vaccination_execution_schedule_idx": {
+          "name": "vaccination_execution_schedule_idx",
+          "columns": [
+            {
+              "expression": "schedule_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "vaccination_executions_id_farm_events_id_fk": {
+          "name": "vaccination_executions_id_farm_events_id_fk",
+          "tableFrom": "vaccination_executions",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "vaccination_executions_schedule_id_vaccination_schedules_id_fk": {
+          "name": "vaccination_executions_schedule_id_vaccination_schedules_id_fk",
+          "tableFrom": "vaccination_executions",
+          "tableTo": "vaccination_schedules",
+          "columnsFrom": [
+            "schedule_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "vaccination_executions_performer_id_user_id_fk": {
+          "name": "vaccination_executions_performer_id_user_id_fk",
+          "tableFrom": "vaccination_executions",
+          "tableTo": "user",
+          "columnsFrom": [
+            "performer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.vaccination_schedules": {
+      "name": "vaccination_schedules",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "flock_id": {
+          "name": "flock_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "barn_id": {
+          "name": "barn_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vaccine_name": {
+          "name": "vaccine_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "vaccination_due_idx": {
+          "name": "vaccination_due_idx",
+          "columns": [
+            {
+              "expression": "due_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "vaccination_schedules_id_farm_events_id_fk": {
+          "name": "vaccination_schedules_id_farm_events_id_fk",
+          "tableFrom": "vaccination_schedules",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "vaccination_schedules_flock_id_flocks_id_fk": {
+          "name": "vaccination_schedules_flock_id_flocks_id_fk",
+          "tableFrom": "vaccination_schedules",
+          "tableTo": "flocks",
+          "columnsFrom": [
+            "flock_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "vaccination_schedules_barn_id_barns_id_fk": {
+          "name": "vaccination_schedules_barn_id_barns_id_fk",
+          "tableFrom": "vaccination_schedules",
+          "tableTo": "barns",
+          "columnsFrom": [
+            "barn_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.reseller_cash": {
+      "name": "reseller_cash",
+      "schema": "",
+      "columns": {
+        "space_id": {
+          "name": "space_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "reseller_cash_direction",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delta_idr": {
+          "name": "delta_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "reseller_cash_space_id_id_reseller_events_space_id_id_fk": {
+          "name": "reseller_cash_space_id_id_reseller_events_space_id_id_fk",
+          "tableFrom": "reseller_cash",
+          "tableTo": "reseller_events",
+          "columnsFrom": [
+            "space_id",
+            "id"
+          ],
+          "columnsTo": [
+            "space_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "reseller_cash_space_id_id_pk": {
+          "name": "reseller_cash_space_id_id_pk",
+          "columns": [
+            "space_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "reseller_cash_direction_values": {
+          "name": "reseller_cash_direction_values",
+          "value": "\n    (\"reseller_cash\".\"direction\" = 'income' and \"reseller_cash\".\"delta_idr\" > 0) or\n    (\"reseller_cash\".\"direction\" = 'expense' and \"reseller_cash\".\"delta_idr\" < 0) or\n    (\"reseller_cash\".\"direction\" = 'opening' and \"reseller_cash\".\"delta_idr\" >= 0) or\n    \"reseller_cash\".\"direction\" = 'reversal'\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.reseller_events": {
+      "name": "reseller_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "reseller_event_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "business_date": {
+          "name": "business_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "request_key": {
+          "name": "request_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "reverses_id": {
+          "name": "reverses_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "reseller_event_date_idx": {
+          "name": "reseller_event_date_idx",
+          "columns": [
+            {
+              "expression": "space_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "business_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sequence",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "reseller_events_space_id_reseller_spaces_id_fk": {
+          "name": "reseller_events_space_id_reseller_spaces_id_fk",
+          "tableFrom": "reseller_events",
+          "tableTo": "reseller_spaces",
+          "columnsFrom": [
+            "space_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reseller_events_actor_id_user_id_fk": {
+          "name": "reseller_events_actor_id_user_id_fk",
+          "tableFrom": "reseller_events",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reseller_events_space_id_reverses_id_reseller_events_space_id_id_fk": {
+          "name": "reseller_events_space_id_reverses_id_reseller_events_space_id_id_fk",
+          "tableFrom": "reseller_events",
+          "tableTo": "reseller_events",
+          "columnsFrom": [
+            "space_id",
+            "reverses_id"
+          ],
+          "columnsTo": [
+            "space_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "reseller_events_sequence_unique": {
+          "name": "reseller_events_sequence_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sequence"
+          ]
+        },
+        "reseller_event_scope": {
+          "name": "reseller_event_scope",
+          "nullsNotDistinct": false,
+          "columns": [
+            "space_id",
+            "id"
+          ]
+        },
+        "reseller_event_idempotency": {
+          "name": "reseller_event_idempotency",
+          "nullsNotDistinct": false,
+          "columns": [
+            "space_id",
+            "request_key"
+          ]
+        },
+        "reseller_event_reversal": {
+          "name": "reseller_event_reversal",
+          "nullsNotDistinct": false,
+          "columns": [
+            "space_id",
+            "reverses_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "reseller_reversal_link": {
+          "name": "reseller_reversal_link",
+          "value": "(\"reseller_events\".\"kind\" = 'reversal') = (\"reseller_events\".\"reverses_id\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.reseller_spaces": {
+      "name": "reseller_spaces",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "reseller_spaces_user_id_user_id_fk": {
+          "name": "reseller_spaces_user_id_user_id_fk",
+          "tableFrom": "reseller_spaces",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "reseller_spaces_user_id_unique": {
+          "name": "reseller_spaces_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.reseller_stock": {
+      "name": "reseller_stock",
+      "schema": "",
+      "columns": {
+        "space_id": {
+          "name": "space_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delta_pieces": {
+          "name": "delta_pieces",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit": {
+          "name": "unit",
+          "type": "reseller_quantity_unit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_id": {
+          "name": "unit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit_count": {
+          "name": "unit_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pieces_per_unit": {
+          "name": "pieces_per_unit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actual_grams": {
+          "name": "actual_grams",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "reseller_stock_category_idx": {
+          "name": "reseller_stock_category_idx",
+          "columns": [
+            {
+              "expression": "space_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "category",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "reseller_stock_space_id_id_reseller_events_space_id_id_fk": {
+          "name": "reseller_stock_space_id_id_reseller_events_space_id_id_fk",
+          "tableFrom": "reseller_stock",
+          "tableTo": "reseller_events",
+          "columnsFrom": [
+            "space_id",
+            "id"
+          ],
+          "columnsTo": [
+            "space_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reseller_stock_space_id_unit_id_reseller_units_space_id_id_fk": {
+          "name": "reseller_stock_space_id_unit_id_reseller_units_space_id_id_fk",
+          "tableFrom": "reseller_stock",
+          "tableTo": "reseller_units",
+          "columnsFrom": [
+            "space_id",
+            "unit_id"
+          ],
+          "columnsTo": [
+            "space_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "reseller_stock_space_id_id_category_pk": {
+          "name": "reseller_stock_space_id_id_category_pk",
+          "columns": [
+            "space_id",
+            "id",
+            "category"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "reseller_stock_piece_check": {
+          "name": "reseller_stock_piece_check",
+          "value": "\"reseller_stock\".\"delta_pieces\" <> 0"
+        },
+        "reseller_stock_unit_check": {
+          "name": "reseller_stock_unit_check",
+          "value": "\n    (\"reseller_stock\".\"unit\" = 'pieces' and \"reseller_stock\".\"unit_id\" is null and \"reseller_stock\".\"unit_count\" is null\n        and \"reseller_stock\".\"pieces_per_unit\" is null and \"reseller_stock\".\"actual_grams\" is null) or\n    (\"reseller_stock\".\"unit\" = 'packaging' and \"reseller_stock\".\"unit_id\" is not null and coalesce(\"reseller_stock\".\"unit_count\", 0) > 0\n        and coalesce(\"reseller_stock\".\"pieces_per_unit\", 0) > 0 and \"reseller_stock\".\"actual_grams\" is null\n        and abs(\"reseller_stock\".\"delta_pieces\") = \"reseller_stock\".\"unit_count\"::bigint * \"reseller_stock\".\"pieces_per_unit\") or\n    (\"reseller_stock\".\"unit\" = 'kg' and \"reseller_stock\".\"unit_id\" is null and \"reseller_stock\".\"unit_count\" is null\n        and \"reseller_stock\".\"pieces_per_unit\" is null and coalesce(\"reseller_stock\".\"actual_grams\", 0) > 0)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.reseller_units": {
+      "name": "reseller_units",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effective_date": {
+          "name": "effective_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pieces_per_unit": {
+          "name": "pieces_per_unit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "reseller_unit_date_idx": {
+          "name": "reseller_unit_date_idx",
+          "columns": [
+            {
+              "expression": "space_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "effective_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "reseller_units_space_id_reseller_spaces_id_fk": {
+          "name": "reseller_units_space_id_reseller_spaces_id_fk",
+          "tableFrom": "reseller_units",
+          "tableTo": "reseller_spaces",
+          "columnsFrom": [
+            "space_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "reseller_unit_scope": {
+          "name": "reseller_unit_scope",
+          "nullsNotDistinct": false,
+          "columns": [
+            "space_id",
+            "id"
+          ]
+        },
+        "reseller_unit_revision": {
+          "name": "reseller_unit_revision",
+          "nullsNotDistinct": false,
+          "columns": [
+            "space_id",
+            "code",
+            "revision"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "reseller_unit_values": {
+          "name": "reseller_unit_values",
+          "value": "\"reseller_units\".\"revision\" > 0 and \"reseller_units\".\"pieces_per_unit\" > 0 and \"reseller_units\".\"code\" not in ('kg', 'butir')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.account_links": {
+      "name": "account_links",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "account_token_purpose",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "digest": {
+          "name": "digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "used_at": {
+          "name": "used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "account_link_one_current": {
+          "name": "account_link_one_current",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "purpose",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"account_links\".\"used_at\" is null and \"account_links\".\"revoked_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "account_links_user_id_user_id_fk": {
+          "name": "account_links_user_id_user_id_fk",
+          "tableFrom": "account_links",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "account_links_created_by_user_id_fk": {
+          "name": "account_links_created_by_user_id_fk",
+          "tableFrom": "account_links",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "account_links_digest_unique": {
+          "name": "account_links_digest_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "digest"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "account_link_validity": {
+          "name": "account_link_validity",
+          "value": "\"account_links\".\"expires_at\" > \"account_links\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.admin_bootstrap": {
+      "name": "admin_bootstrap",
+      "schema": "",
+      "columns": {
+        "singleton": {
+          "name": "singleton",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "default": 1
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "admin_bootstrap_user_id_user_id_fk": {
+          "name": "admin_bootstrap_user_id_user_id_fk",
+          "tableFrom": "admin_bootstrap",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "bootstrap_singleton": {
+          "name": "bootstrap_singleton",
+          "value": "\"admin_bootstrap\".\"singleton\" = 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.audit_events": {
+      "name": "audit_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_role": {
+          "name": "actor_role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity": {
+          "name": "entity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "business_date": {
+          "name": "business_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "before": {
+          "name": "before",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "after": {
+          "name": "after",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "correlation_id": {
+          "name": "correlation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        }
+      },
+      "indexes": {
+        "audit_actor_time_idx": {
+          "name": "audit_actor_time_idx",
+          "columns": [
+            {
+              "expression": "actor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "recorded_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_entity_time_idx": {
+          "name": "audit_entity_time_idx",
+          "columns": [
+            {
+              "expression": "entity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "recorded_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_space_time_idx": {
+          "name": "audit_space_time_idx",
+          "columns": [
+            {
+              "expression": "space_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "recorded_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "audit_events_actor_id_user_id_fk": {
+          "name": "audit_events_actor_id_user_id_fk",
+          "tableFrom": "audit_events",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audit_events_space_id_reseller_spaces_id_fk": {
+          "name": "audit_events_space_id_reseller_spaces_id_fk",
+          "tableFrom": "audit_events",
+          "tableTo": "reseller_spaces",
+          "columnsFrom": [
+            "space_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.correction_requests": {
+      "name": "correction_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "subject_id": {
+          "name": "subject_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requester_id": {
+          "name": "requester_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reviewer_id": {
+          "name": "reviewer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "review_reason": {
+          "name": "review_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original": {
+          "name": "original",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "proposed": {
+          "name": "proposed",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "correction_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reversal_id": {
+          "name": "reversal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replacement_id": {
+          "name": "replacement_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "correction_queue_idx": {
+          "name": "correction_queue_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "one_pending_correction": {
+          "name": "one_pending_correction",
+          "columns": [
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"correction_requests\".\"status\" = 'pending'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "correction_requests_subject_id_farm_events_id_fk": {
+          "name": "correction_requests_subject_id_farm_events_id_fk",
+          "tableFrom": "correction_requests",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "subject_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "correction_requests_requester_id_user_id_fk": {
+          "name": "correction_requests_requester_id_user_id_fk",
+          "tableFrom": "correction_requests",
+          "tableTo": "user",
+          "columnsFrom": [
+            "requester_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "correction_requests_reviewer_id_user_id_fk": {
+          "name": "correction_requests_reviewer_id_user_id_fk",
+          "tableFrom": "correction_requests",
+          "tableTo": "user",
+          "columnsFrom": [
+            "reviewer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "correction_requests_reversal_id_farm_events_id_fk": {
+          "name": "correction_requests_reversal_id_farm_events_id_fk",
+          "tableFrom": "correction_requests",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "reversal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "correction_requests_replacement_id_farm_events_id_fk": {
+          "name": "correction_requests_replacement_id_farm_events_id_fk",
+          "tableFrom": "correction_requests",
+          "tableTo": "farm_events",
+          "columnsFrom": [
+            "replacement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "correction_requests_reversal_id_unique": {
+          "name": "correction_requests_reversal_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "reversal_id"
+          ]
+        },
+        "correction_requests_replacement_id_unique": {
+          "name": "correction_requests_replacement_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "replacement_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "correction_resolution_fields": {
+          "name": "correction_resolution_fields",
+          "value": "\n    (\"correction_requests\".\"status\" = 'pending' and \"correction_requests\".\"reviewer_id\" is null and \"correction_requests\".\"reviewed_at\" is null) or\n    (\"correction_requests\".\"status\" <> 'pending' and \"correction_requests\".\"reviewer_id\" is not null and \"correction_requests\".\"reviewed_at\" is not null and \"correction_requests\".\"review_reason\" is not null)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.idempotency": {
+      "name": "idempotency",
+      "schema": "",
+      "columns": {
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command": {
+          "name": "command",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_key": {
+          "name": "request_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result_id": {
+          "name": "result_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "idempotency_actor_id_user_id_fk": {
+          "name": "idempotency_actor_id_user_id_fk",
+          "tableFrom": "idempotency",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "idempotency_actor_id_command_request_key_pk": {
+          "name": "idempotency_actor_id_command_request_key_pk",
+          "columns": [
+            "actor_id",
+            "command",
+            "request_key"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.account_link_attempts": {
+      "name": "account_link_attempts",
+      "schema": "",
+      "columns": {
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "window_started_at": {
+          "name": "window_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "account_link_attempts_time_idx": {
+          "name": "account_link_attempts_time_idx",
+          "columns": [
+            {
+              "expression": "window_started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.cash_direction": {
+      "name": "cash_direction",
+      "schema": "public",
+      "values": [
+        "opening",
+        "income",
+        "expense",
+        "reversal"
+      ]
+    },
+    "public.egg_category": {
+      "name": "egg_category",
+      "schema": "public",
+      "values": [
+        "ungraded",
+        "coklat",
+        "putih",
+        "cacat"
+      ]
+    },
+    "public.farm_event_kind": {
+      "name": "farm_event_kind",
+      "schema": "public",
+      "values": [
+        "population",
+        "feed_opening",
+        "feed_purchase",
+        "feed_mix",
+        "feed_issue",
+        "feed_close",
+        "feed_adjustment",
+        "egg_harvest",
+        "egg_grading",
+        "egg_sale",
+        "egg_adjustment",
+        "health_event",
+        "vaccination_plan",
+        "vaccination_execution",
+        "quarantine",
+        "cash_opening",
+        "cash_manual",
+        "reversal"
+      ]
+    },
+    "public.feed_movement_kind": {
+      "name": "feed_movement_kind",
+      "schema": "public",
+      "values": [
+        "opening",
+        "purchase",
+        "mix_in",
+        "mix_out",
+        "issue",
+        "return",
+        "waste",
+        "adjustment",
+        "reversal"
+      ]
+    },
+    "public.feed_product_kind": {
+      "name": "feed_product_kind",
+      "schema": "public",
+      "values": [
+        "ingredient",
+        "complete",
+        "mixed"
+      ]
+    },
+    "public.health_status": {
+      "name": "health_status",
+      "schema": "public",
+      "values": [
+        "open",
+        "monitoring",
+        "resolved"
+      ]
+    },
+    "public.population_kind": {
+      "name": "population_kind",
+      "schema": "public",
+      "values": [
+        "opening",
+        "arrival",
+        "death",
+        "cull",
+        "exit",
+        "transfer"
+      ]
+    },
+    "public.receipt_status": {
+      "name": "receipt_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "active",
+        "replaced",
+        "cleanup_pending",
+        "deleted"
+      ]
+    },
+    "public.reseller_cash_direction": {
+      "name": "reseller_cash_direction",
+      "schema": "public",
+      "values": [
+        "opening",
+        "income",
+        "expense",
+        "reversal"
+      ]
+    },
+    "public.reseller_event_kind": {
+      "name": "reseller_event_kind",
+      "schema": "public",
+      "values": [
+        "stock_opening",
+        "intake",
+        "sale",
+        "cash_opening",
+        "cash_manual",
+        "stock_adjustment",
+        "reversal"
+      ]
+    },
+    "public.reseller_quantity_unit": {
+      "name": "reseller_quantity_unit",
+      "schema": "public",
+      "values": [
+        "pieces",
+        "packaging",
+        "kg"
+      ]
+    },
+    "public.correction_status": {
+      "name": "correction_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "approved",
+        "rejected"
+      ]
+    },
+    "public.account_token_purpose": {
+      "name": "account_token_purpose",
+      "schema": "public",
+      "values": [
+        "activation",
+        "reset"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -3,8 +3,8 @@ import {
   Settings, Store, Wallet, type LucideIcon,
 } from "lucide-react";
 
-export const roles = ["administrator", "pemilik", "abk", "reseller"] as const;
-export type Role = (typeof roles)[number];
+import { roles, type Role } from "./roles";
+export type { Role } from "./roles";
 const farm = ["administrator", "pemilik", "abk"] as const;
 
 export const modules = [
