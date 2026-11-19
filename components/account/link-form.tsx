@@ -8,7 +8,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { completeLinkSchema } from "@/lib/account-validation";
 import { completeLinkAction } from "@/server/auth/actions";
-import { FormError, TextField, type FieldErrors } from "./form-fields";
+import { FormError, TextField, type FieldErrors } from "@/components/shared/form-fields";
 
 export function LinkForm() {
   const [errors, setErrors] = useState<FieldErrors>({});

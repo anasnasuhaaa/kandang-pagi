@@ -13,8 +13,8 @@ import { FormDialog } from "@/components/shared/form-dialog";
 import { changeRoleSchema, changeStatusSchema, issueLinkSchema, newAccountSchema } from "@/lib/account-validation";
 import { roleLabels, roles, type Role } from "@/lib/roles";
 import { createUserAction, issueLinkAction, setRoleAction, setStatusAction } from "@/server/auth/actions";
-import { ChoiceField, FormError, TextField } from "./form-fields";
-import { useAccountForm } from "./use-account-form";
+import { ChoiceField, FormError, TextField } from "@/components/shared/form-fields";
+import { useValidatedForm } from "@/components/shared/use-validated-form";
 
 const roleChoices = roles.map((value) => ({ value, label: roleLabels[value] }));
 const issuedLinkSchema = z.object({ url: z.url(), expiresAt: z.iso.datetime() });
@@ -47,7 +47,7 @@ export function CreateAccountDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [issued, setIssued] = useState<IssuedLink>();
-  const form = useAccountForm(newAccountSchema, createUserAction, (value) => {
+  const form = useValidatedForm(newAccountSchema, createUserAction, (value) => {
     setIssued(issuedLinkSchema.parse(value));
     toast.success("Akun dibuat. Bagikan tautan aktivasi.");
     router.refresh();
@@ -81,7 +81,7 @@ export function AccountControls({ userId, name, role, status }: {
   const [message, setMessage] = useState("");
   const purpose = status === "pending" ? "activation" : "reset";
   const stateLabel = status === "active" ? "Tangguhkan akun" : "Aktifkan kembali";
-  const form = useAccountForm(changeRoleSchema, setRoleAction, () => {
+  const form = useValidatedForm(changeRoleSchema, setRoleAction, () => {
     setRoleOpen(false);
     toast.success("Peran diubah.");
     router.refresh();

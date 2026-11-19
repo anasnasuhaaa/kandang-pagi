@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { changePasswordSchema, profileSchema } from "@/lib/account-validation";
 import { roleLabels, type Role, type Theme } from "@/lib/roles";
 import { changePasswordAction, saveProfileAction } from "@/server/auth/actions";
-import { ChoiceField, FormError, TextField } from "./form-fields";
-import { useAccountForm } from "./use-account-form";
+import { ChoiceField, FormError, TextField } from "@/components/shared/form-fields";
+import { useValidatedForm } from "@/components/shared/use-validated-form";
 
 const themeChoices = [
   { value: "system", label: "Ikuti perangkat" },
@@ -20,7 +20,7 @@ const themeChoices = [
 export function ProfileForms({ name, email, role, theme }: { name: string; email: string; role: Role; theme: Theme }) {
   const router = useRouter();
   const { setTheme } = useTheme();
-  const profile = useAccountForm(profileSchema, async (values) => {
+  const profile = useValidatedForm(profileSchema, async (values) => {
     const result = await saveProfileAction(values);
     if (result.ok) setTheme(values.theme);
     return result;
@@ -28,7 +28,7 @@ export function ProfileForms({ name, email, role, theme }: { name: string; email
     toast.success("Profil disimpan.");
     router.refresh();
   });
-  const password = useAccountForm(changePasswordSchema, changePasswordAction, () => {
+  const password = useValidatedForm(changePasswordSchema, changePasswordAction, () => {
     toast.success("Kata sandi diubah. Silakan masuk kembali.");
     router.replace("/masuk");
   });

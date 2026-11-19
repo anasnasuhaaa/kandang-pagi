@@ -6,9 +6,9 @@
 
 - Project: Kandang Pagi real client farm management web application.
 - Source repository: **already initialized by user**; do not recreate Git/Next.js.
-- Current stage: **02 complete**.
-- Last completed stage: **02 — Database and authentication**.
-- Next stage: **03 — Dashboard and Livestock** (`codex/prompts/03-dashboard-and-livestock.md`).
+- Current stage: **03 complete**.
+- Last completed stage: **03 — Dashboard and livestock**.
+- Next stage: **04 — Feed and Egg Production** (`codex/prompts/04-feed-and-egg-production.md`).
 - All nine core modules are in MVP scope.
 - Git policy: local stage commits only; **NEVER PUSH**.
 
@@ -17,8 +17,8 @@
 | Stage | Status | Report | Commit hash | Main blocker |
 |---|---|---|---|---|
 | 01 Foundation | Complete | [Report](reports/STAGE_01_REPORT.md) | `fff0439` | — |
-| 02 Database/Auth | Complete | [Report](reports/STAGE_02_REPORT.md) | Commit containing report¹ | — |
-| 03 Dashboard/Populasi | Not started | — | — | — |
+| 02 Database/Auth | Complete | [Report](reports/STAGE_02_REPORT.md) | `fe243f6` | — |
+| 03 Dashboard/Populasi | Complete | [Report](reports/STAGE_03_REPORT.md) | Commit containing report¹ | — |
 | 04 Pakan/Telur | Not started | — | — | — |
 | 05 Kesehatan/Keuangan | Not started | — | — | — |
 | 06 Reseller/Laporan | Not started | — | — | — |
@@ -33,7 +33,7 @@
 - Production DB separation: **not verified**.
 - ImageKit names present: `IMAGEKIT_PRIVATE_KEY`, `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`, `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT`.
 - Better Auth 1.7.20 and its Drizzle adapter are installed and verified.
-- ¹ Resolve the Stage 02 commit with `git log -1 --format=%h -- codex/progress/reports/STAGE_02_REPORT.md`.
+- ¹ Resolve the Stage 03 commit with `git log -1 --format=%h -- codex/progress/reports/STAGE_03_REPORT.md`.
 
 ## Approved decisions snapshot
 

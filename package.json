@@ -13,7 +13,7 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:bootstrap-admin": "tsx scripts/bootstrap-admin.ts",
     "test": "tsx --test tests/unit/*.test.ts",
-    "test:integration": "tsx --test tests/integration/*.test.ts"
+    "test:integration": "tsx --test --test-concurrency=1 tests/integration/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

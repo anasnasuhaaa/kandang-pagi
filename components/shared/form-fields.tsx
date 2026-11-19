@@ -26,19 +26,20 @@ export function FormError({ message }: { message: string }) {
 }
 
 export function ChoiceField({
-  name, label, choices, value, error,
+  name, label, choices, value, error, onValueChange,
 }: {
   name: string;
   label: string;
   choices: readonly { value: string; label: string }[];
   value?: string;
+  onValueChange?: (value: string | null) => void;
   error?: string[];
 }) {
   const id = useId();
   return (
     <Field data-invalid={Boolean(error) || undefined}>
       <FieldLabel id={id}>{label}</FieldLabel>
-      <Select name={name} items={choices} defaultValue={value}>
+      <Select name={name} items={choices} defaultValue={value} onValueChange={onValueChange}>
         <SelectTrigger aria-labelledby={id} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? `${id}-error` : undefined} className="h-10 w-full">
           <SelectValue placeholder="Pilih salah satu" />
         </SelectTrigger>

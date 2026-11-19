@@ -6,14 +6,19 @@ import { z } from "zod";
 import type { ActionResult } from "@/server/auth/actions";
 import type { FieldErrors } from "./form-fields";
 
-export function useAccountForm<T>(schema: z.ZodType<T>, action: (input: T) => Promise<ActionResult<unknown>>, onSuccess: (value: unknown) => void) {
+export function useValidatedForm<T, Result>(
+  schema: z.ZodType<T>,
+  action: (input: T, raw: Record<string, FormDataEntryValue>) => Promise<ActionResult<Result>>,
+  onSuccess: (value: Result) => void,
+) {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = schema.safeParse(Object.fromEntries(new FormData(event.currentTarget)));
+    const raw = Object.fromEntries(new FormData(event.currentTarget));
+    const result = schema.safeParse(raw);
     setMessage("");
     if (!result.success) {
       setErrors(z.flattenError(result.error).fieldErrors);
@@ -22,7 +27,7 @@ export function useAccountForm<T>(schema: z.ZodType<T>, action: (input: T) => Pr
     setErrors({});
     setPending(true);
     try {
-      const response = await action(result.data);
+      const response = await action(result.data, raw);
       if (response.ok) onSuccess(response.value);
       else setMessage(response.message);
     } catch {

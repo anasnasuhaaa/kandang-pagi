@@ -26,7 +26,7 @@ for (const width of [320, 375, 768, 1440]) {
     await page.emulateMedia({ colorScheme: "light" });
     await signIn(page);
     await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
-    await expect(page.getByText("Modul sedang disiapkan")).toBeVisible();
+    await expect(page.getByText("Belum ada riwayat populasi")).toBeVisible();
     expect(await page.evaluate(async () => {
       await document.fonts.ready;
       return document.fonts.check(`600 16px ${getComputedStyle(document.body).fontFamily.split(",")[0]}`);
@@ -52,8 +52,9 @@ for (const width of [320, 375, 768, 1440]) {
       await expect(trigger).toBeFocused();
     }
 
-    for (const [, url] of modules) {
+    for (const [name, url] of modules) {
       await page.goto(url);
+      await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
       expect(overflow, url).toBe(false);
     }
@@ -131,4 +132,47 @@ test("akun baru, aktivasi manual, izin ABK dan keluar", async ({ page, browser, 
   await operator.goto("/dashboard");
   await expect(operator).toHaveURL("/masuk");
   await recipient.close();
+});
+
+test("pencatatan kandang, kelompok, dan kematian dari ponsel", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 840 });
+  await signIn(page);
+  await page.goto("/populasi");
+
+  await page.getByRole("button", { name: "Tambah kandang" }).click();
+  const barn = page.getByRole("dialog", { name: "Tambah kandang" });
+  await barn.getByLabel("Kode kandang").fill("UJI-01");
+  await barn.getByLabel("Nama kandang").fill("Kandang Uji");
+  await barn.getByRole("button", { name: "Simpan kandang" }).click();
+  await expect(barn).toBeHidden();
+  await expect(page.getByRole("cell", { name: "Kandang Uji", exact: true })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Kelompok ternak" }).click();
+  await page.getByRole("button", { name: "Tambah kelompok" }).click();
+  const flock = page.getByRole("dialog", { name: "Tambah kelompok" });
+  await flock.getByLabel("Kode kelompok").fill("KLP-1");
+  await flock.getByLabel("Nama kelompok").fill("Kelompok Uji");
+  await flock.getByRole("combobox", { name: "Kandang penempatan" }).click();
+  await page.getByRole("option", { name: "UJI-01 · Kandang Uji" }).click();
+  await flock.getByLabel("Asal ternak").fill("Pemasok Uji");
+  await flock.getByLabel("Jumlah awal (ekor)").fill("75");
+  await flock.getByLabel("Umur awal (hari)").fill("100");
+  await flock.getByLabel("Alasan penempatan").fill("Penerimaan kelompok baru");
+  await flock.getByRole("button", { name: "Simpan kelompok" }).click();
+  await expect(flock).toBeHidden();
+  await expect(page.getByText("75 ekor")).toBeVisible();
+
+  await page.getByRole("tab", { name: "Mutasi", exact: true }).click();
+  await page.getByRole("button", { name: "Catat mutasi" }).click();
+  const move = page.getByRole("dialog", { name: "Catat mutasi" });
+  await move.getByRole("combobox", { name: "Kelompok ternak" }).click();
+  await page.getByRole("option", { name: "KLP-1 · Kelompok Uji" }).click();
+  await move.getByLabel("Jumlah (ekor)").fill("5");
+  await move.getByLabel("Alasan mutasi").fill("Kematian tercatat pagi ini");
+  await move.getByRole("button", { name: "Simpan mutasi" }).click();
+  await expect(move).toBeHidden();
+  await expect(page.getByText("70 ekor", { exact: true })).toBeVisible();
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Tren populasi" })).toBeVisible();
+  await expect(page.getByText("70 ekor", { exact: true })).toBeVisible();
 });

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { loginSchema, themeSchema } from "@/lib/account-validation";
-import { FormError, TextField, type FieldErrors } from "./form-fields";
+import { FormError, TextField, type FieldErrors } from "@/components/shared/form-fields";
 
 export function LoginForm() {
   const [errors, setErrors] = useState<FieldErrors>({});

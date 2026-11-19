@@ -32,3 +32,19 @@ export function formatIDR(value: number | bigint) {
 export function formatQuantity(value: number | bigint) {
   return quantity.format(value);
 }
+
+export function jakartaStart(date: string) {
+  return new Date(`${date}T00:00:00+07:00`);
+}
+
+export function shiftBusinessDate(date: string, days: number) {
+  const at = jakartaStart(date);
+  at.setUTCDate(at.getUTCDate() + days);
+  return businessDate(at);
+}
+
+export function datesBetween(from: string, to: string) {
+  const values: string[] = [];
+  for (let date = from; date <= to; date = shiftBusinessDate(date, 1)) values.push(date);
+  return values;
+}

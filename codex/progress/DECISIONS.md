@@ -59,6 +59,16 @@
 - The auth handler exposes the required sign-in and sign-out paths. It uses database-backed Better Auth rate limiting and an authoritative DB session. Account links use a DB rate counter. Login and account management are ordered against password/role/status changes. Account settings persist the theme, which is applied on the next sign-in.
 - Test against PostgreSQL 18.6 in disposable local databases. Production and Neon-specific verification are separate release checks. The CLI requires an explicit environment target and a production flag for an intentional production release.
 
+## Stage 03 engineering decisions
+
+### A011 — Population replay and reporting scope
+- Date/stage: 2026-11-19, Stage 03.
+- Status: Engineering assumption implementing the approved flock baseline and transfer rules.
+- Each new group receives a separate opening/arrival record with an immutable baseline. Transfers move the whole live flock to avoid overlapping placement intervals and retain the original identity. ABK can record groups and movements across the single farm while barn master changes and cancellation remain Administrator operations.
+- Writes serialize under a farm advisory lock, order operations by business date and event sequence, and replay later events to catch invalid negative quantities or placements. Reversals record the original effective date and a separate recorded timestamp. An earlier cancellation is rejected if later stock/placement would no longer be valid.
+- Jakarta midnight represents the business date when the source form has no time of day. Date filters accept up to 90 days per request using the projected as-of ledger. HHP includes eligible dates with flock presence, including a placement/exit day. HDP uses end-of-day count. Mixed harvests affect farm and barn totals but block attribution to the affected flock on that date.
+- Pending feed and egg metrics remain explicit until real capture is implemented. Report calculations consume measured and dated rows.
+
 ## Entry template
 
 ```markdown
