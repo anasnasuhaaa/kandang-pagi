@@ -1,7 +1,9 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import axe from "axe-core";
+import { PDFDocument } from "pdf-lib";
 import { expect, test, type Page } from "@playwright/test";
 import { connectDatabase } from "../../db";
+import { resellerSpaces } from "../../db/schema";
 import { businessDate } from "../../lib/format";
 import { createAuth } from "../../server/auth/config";
 import { addMovement, createBarn, createFlock } from "../../server/services/population";
@@ -9,13 +11,13 @@ import { testDatabaseUrl } from "../integration/test-database";
 const adminEmail = process.env.KANDANG_E2E_ADMIN_EMAIL!;
 const adminPassword = process.env.KANDANG_E2E_ADMIN_PASSWORD!;
 
-async function signIn(page: Page, email = adminEmail, password = adminPassword) {
+async function signIn(page: Page, email = adminEmail, password = adminPassword, destination = "/dashboard") {
   await page.goto("/masuk");
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Kata sandi", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Masuk", exact: true }).click();
-  await expect(page).toHaveURL("/dashboard");
-  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(destination);
+  await expect(page.getByRole("heading", { name: destination === "/reseller" ? "Reseller" : "Dashboard", exact: true })).toBeVisible();
 }
 
 const modules = [
@@ -127,6 +129,7 @@ test("akun baru, aktivasi manual, izin ABK dan keluar", async ({ page, browser, 
   await signIn(operator, operatorEmail, secret);
   await expect(operator.getByRole("link", { name: "Keuangan" })).toHaveCount(0);
   expect((await recipient.request.get(`/api/bukti/${randomUUID()}`)).status()).toBe(403);
+  expect((await recipient.request.get("/api/laporan/pdf?jenis=keuangan")).status()).toBe(403);
   await operator.goto("/keuangan");
   await expect(operator).toHaveURL("/dashboard");
   await operator.goto("/pengaturan?tab=akun");
@@ -332,4 +335,77 @@ test("kesehatan, kas, dan persetujuan koreksi", async ({ page, browser }) => {
   await page.getByRole("alertdialog").getByRole("button", { name: "Konfirmasi dan simpan" }).click();
   await expect(page.getByRole("cell", { name: "Pemasukan kas uji", exact: true })).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Pemasukan kas uji" }).getByRole("button", { name: "Tambah bukti" })).toBeVisible();
+});
+
+test("reseller mencatat kemasan, stok, penjualan, dan mengunduh laporan privat", async ({ page, request }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 320, height: 840 });
+  const { client, db } = connectDatabase(testDatabaseUrl());
+  const email = `reseller-${randomUUID().slice(0, 8)}@example.test`;
+  const secret = randomBytes(20).toString("base64url");
+  try {
+    const auth = createAuth(db);
+    const { user } = await auth.api.createUser({ body: {
+      name: "Reseller Uji", email, password: secret, role: "reseller", data: { status: "active" },
+    } });
+    await db.insert(resellerSpaces).values({ userId: user.id });
+  } finally {
+    await client.end();
+  }
+
+  expect((await request.get("/api/laporan/pdf")).status()).toBe(401);
+  await signIn(page, email, secret, "/reseller");
+  await page.getByRole("button", { name: "Buka atau tutup navigasi" }).click();
+  const nav = page.getByRole("navigation", { name: "Modul utama" });
+  await expect(nav.getByRole("link")).toHaveCount(3);
+  await expect(nav.getByRole("link", { name: "Dashboard" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("tab", { name: "Satuan", exact: true }).click();
+  await page.getByRole("button", { name: "Tambah satuan kemasan" }).click();
+  const unit = page.getByRole("dialog", { name: "Tambah satuan kemasan" });
+  await unit.getByLabel("Kode satuan").fill("wadah");
+  await unit.getByLabel("Nama satuan").fill("Kotak reseller");
+  await unit.getByLabel("Butir per kemasan").fill("24");
+  await unit.getByRole("button", { name: "Simpan pencatatan" }).click();
+  await expect(page.getByRole("cell", { name: "Kotak reseller", exact: true })).toBeVisible();
+
+  async function choose(dialog: ReturnType<Page["getByRole"]>, label: string, option: string | RegExp) {
+    await dialog.getByRole("combobox", { name: label, exact: true }).click();
+    await page.getByRole("option", { name: option }).click();
+  }
+  async function trade(sale: boolean) {
+    await page.getByRole("tab", { name: sale ? "Penjualan" : "Stok masuk", exact: true }).click();
+    const name = sale ? "Catat penjualan reseller" : "Catat stok masuk";
+    await page.getByRole("button", { name }).click();
+    const dialog = page.getByRole("dialog", { name });
+    await choose(dialog, "Kategori telur", "Campuran");
+    await choose(dialog, "Satuan pencatatan", "Kemasan");
+    await choose(dialog, "Kemasan", /Kotak reseller/);
+    await dialog.getByLabel("Jumlah kemasan").fill(sale ? "1" : "2");
+    await dialog.getByLabel(sale ? "Pembayaran penuh diterima (Rp)" : "Biaya yang dibayar (Rp)").fill(sale ? "25.000" : "12.000");
+    await dialog.getByRole("button", { name: "Periksa dan lanjutkan" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Konfirmasi dan simpan" }).click();
+    await expect(dialog).toBeHidden();
+  }
+  await trade(false);
+  await trade(true);
+
+  await page.goto("/laporan");
+  await expect(page.getByRole("heading", { name: "Laporan Usaha reseller", exact: true })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Saldo stok reseller" }).getByRole("cell", { name: "24", exact: true })).toBeVisible();
+  await expect(page.getByText(/Rp.?13\.000/)).toBeVisible();
+  const path = (await page.getByRole("link", { name: "Unduh PDF" }).getAttribute("href"))!;
+  expect(path).toContain("jenis=reseller");
+  const response = await page.request.get(path);
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("application/pdf");
+  expect(response.headers()["content-disposition"]).toMatch(/^attachment/);
+  expect((await PDFDocument.load(await response.body())).getPageCount()).toBeGreaterThan(0);
+  const [download] = await Promise.all([
+    page.waitForEvent("download"), page.getByRole("link", { name: "Unduh PDF" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/^laporan-reseller-.*\.pdf$/);
+  expect((await page.request.get("/api/laporan/pdf?jenis=operasional")).status()).toBe(403);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
 });

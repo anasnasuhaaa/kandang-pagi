@@ -102,6 +102,22 @@
 - Next.js 16.4.6 Cache Components rejects a route-level runtime export. Use the installed default Node runtime for image processing and route handlers.
 - Adapt the DB connector to accept the user’s local `schema=public` URL parameter for the existing public schema. Strip this client-specific parameter before postgres.js connects.
 
+## Stage 06 engineering decisions
+
+### A016 — Reseller unit versions and event scope
+- Date/stage: 2026-11-19, Stage 06.
+- Status: Engineering assumption.
+- Reseller writes lock the authenticated workspace. All stock, cash, unit and reversal queries carry that server-derived workspace ID. Use the separate reseller tables and same-space foreign keys for isolation.
+- Packaging definitions are append-only versions. A new transaction resolves the active factor as of its business date. The ledger stores that version, count and integer factor. Direct butir and measured kilograms are distinct and kilograms require a separate physical count.
+- Reseller accepts cash only. Positive payments create one same-space cash posting. A zero-cost intake creates stock only. Cancellation reverses both ledgers and must leave every dated stock balance valid.
+
+### A017 — Shared historical report data
+- Date/stage: 2026-11-19, Stage 06.
+- Status: Engineering assumption.
+- Use one role-checked report projection for HTML and PDF. Accept up to 90 business days and export up to 300 rows per section, with explicit truncation notes. As-of balances can read earlier history when required.
+- Farm-wide HDP and FCR require observations covering the active flocks or explicit mixed barn harvest. Whole-farm stock totals remain separate from barn/flock views for inventory that is stored centrally.
+- Category and transaction filters apply to compatible table details; labels explain the scope of unchanged period totals. PDF uses A4 landscape, a standard embedded PDF font, repeated headers and WIB criteria and dates.
+
 ## Entry template
 
 ```markdown

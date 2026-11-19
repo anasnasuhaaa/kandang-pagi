@@ -204,11 +204,15 @@ export async function populationPeriodData(store: Store, period: Period) {
     const present = new Set<string>();
     const visitedBarns = new Set<string>();
     const activeBarnIds = new Set<string>();
+    const activeByBarn = new Map<string, Set<string>>();
     const observe = (id: string, placement: Placement) => {
       if (period.flockId === id) visitedBarns.add(placement.barnId);
       if (placement.alive > 0 && scoped(placement)) {
         present.add(id);
         activeBarnIds.add(placement.barnId);
+        const presentInBarn = activeByBarn.get(placement.barnId) ?? new Set<string>();
+        presentInBarn.add(id);
+        activeByBarn.set(placement.barnId, presentInBarn);
       }
     };
     let deaths = 0;
@@ -235,11 +239,16 @@ export async function populationPeriodData(store: Store, period: Period) {
       (!period.flockId || harvest.flockId === period.flockId || (!harvest.flockId && visitedBarns.has(harvest.barnId))));
     const mixed = relevantHarvests.some(({ flockId }) => !flockId);
     const attributed = relevantHarvests.filter(({ flockId }) => !period.flockId || flockId === period.flockId);
+    const enoughObservations = attributed.length > 0 && (period.flockId || [...activeByBarn].every(([id, groups]) => {
+      const barnHarvests = attributed.filter((row) => row.barnId === id);
+      return barnHarvests.some((row) => row.flockId === null)
+        || [...groups].every((group) => barnHarvests.some((row) => row.flockId === group));
+    }));
     return {
       day, activeBarnIds: [...activeBarnIds], visitedBarns: [...visitedBarns], hens: sum(alive.map(([, position]) => position.alive)), housed: sum([...present].map((id) => baselines.get(id) ?? 0)),
       activeFlocks: alive.length, known: period.barnId ? observedBarns.has(period.barnId) : states.size > 0, deaths, transfers,
-      eggs: sum(attributed.map(({ pieces }) => pieces)), recorded: attributed.length > 0, mixed,
-      measuredGrams: attributed.length && attributed.every(({ grams, incomplete }) => grams !== null && !incomplete)
+      eggs: sum(attributed.map(({ pieces }) => pieces)), recorded: Boolean(enoughObservations), mixed,
+      measuredGrams: enoughObservations && attributed.every(({ grams, incomplete }) => grams !== null && !incomplete)
         ? sum(attributed.map(({ grams }) => grams ?? 0)) : null,
     };
   });

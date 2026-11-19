@@ -6,9 +6,9 @@
 
 - Project: Kandang Pagi real client farm management web application.
 - Source repository: **already initialized by user**; do not recreate Git/Next.js.
-- Current stage: **05 complete**.
-- Last completed stage: **05 — Health and finance**.
-- Next stage: **06 — Reseller and Reports** (`codex/prompts/06-reseller-and-reports.md`).
+- Current stage: **06 complete**.
+- Last completed stage: **06 — Reseller and reports**.
+- Next stage: **07 — Integration and Final Audit** (`codex/prompts/07-integration-and-final-audit.md`).
 - All nine core modules are in MVP scope.
 - Git policy: local stage commits only; **NEVER PUSH**.
 
@@ -20,8 +20,8 @@
 | 02 Database/Auth | Complete | [Report](reports/STAGE_02_REPORT.md) | `fe243f6` | — |
 | 03 Dashboard/Populasi | Complete | [Report](reports/STAGE_03_REPORT.md) | `8b12425` | — |
 | 04 Pakan/Telur | Complete | [Report](reports/STAGE_04_REPORT.md) | `ee279a8` | — |
-| 05 Kesehatan/Keuangan | Complete | [Report](reports/STAGE_05_REPORT.md) | Commit containing report¹ | — |
-| 06 Reseller/Laporan | Not started | — | — | — |
+| 05 Kesehatan/Keuangan | Complete | [Report](reports/STAGE_05_REPORT.md) | `06006ba` | — |
+| 06 Reseller/Laporan | Complete | [Report](reports/STAGE_06_REPORT.md) | Commit containing report¹ | — |
 | 07 Final Audit | Not started | — | — | — |
 
 ## Environment inventory (Codex must fill in Stage 01/02, no secret values)
@@ -33,7 +33,7 @@
 - Production DB separation: **not verified**.
 - ImageKit names present: `IMAGEKIT_PRIVATE_KEY`, `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`, `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT`.
 - Better Auth 1.7.20 and its Drizzle adapter are installed and verified.
-- ¹ Resolve the Stage 05 commit with `git log -1 --format=%h -- codex/progress/reports/STAGE_05_REPORT.md`.
+- ¹ Resolve the Stage 06 commit with `git log -1 --format=%h -- codex/progress/reports/STAGE_06_REPORT.md`.
 
 ## Approved decisions snapshot
 

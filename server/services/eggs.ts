@@ -106,6 +106,7 @@ export async function adjustEggs(headers: Headers, raw: unknown, db = database()
 export async function eggView(headers: Headers, period: { from: string; to: string }, db = database()) {
   const actor = await requireRole(headers, farmReaders, db);
   const includeMoney = actor.role !== "abk";
+  const inPeriod = and(gte(farmEvents.businessDate, period.from), lte(farmEvents.businessDate, period.to));
   const [stock, barnRows, flockRows, harvests, graded, sales, lines, moves, events] = await Promise.all([
     eggProjection(db, period.to),
     db.select({ id: barns.id, name: barns.name, active: barns.active }).from(barns).orderBy(barns.name),
@@ -116,9 +117,10 @@ export async function eggView(headers: Headers, period: { from: string; to: stri
     }, current: isEffective(db) }).from(eggHarvests)
       .innerJoin(farmEvents, eq(farmEvents.id, eggHarvests.id)).where(lte(farmEvents.businessDate, period.to))
       .orderBy(asc(farmEvents.businessDate), asc(farmEventOrder)),
-    db.select().from(eggGradings),
-    db.select({ id: eggSales.id, ...(includeMoney ? { buyer: eggSales.buyer, paid: eggSales.paidIdr } : {}) }).from(eggSales),
-    db.select({ saleId: eggSaleLines.saleId, category: eggSaleLines.category, pieces: eggSaleLines.pieces }).from(eggSaleLines),
+    db.select({ id: eggGradings.id, harvestId: eggGradings.harvestId, brown: eggGradings.brown, white: eggGradings.white, defective: eggGradings.defective })
+      .from(eggGradings).innerJoin(farmEvents, eq(farmEvents.id, eggGradings.id)).where(inPeriod),
+    db.select({ id: eggSales.id, ...(includeMoney ? { buyer: eggSales.buyer, paid: eggSales.paidIdr } : {}) }).from(eggSales).innerJoin(farmEvents, eq(farmEvents.id, eggSales.id)).where(inPeriod),
+    db.select({ saleId: eggSaleLines.saleId, category: eggSaleLines.category, pieces: eggSaleLines.pieces }).from(eggSaleLines).innerJoin(farmEvents, eq(farmEvents.id, eggSaleLines.saleId)).where(inPeriod),
     db.select().from(eggStockMovements).innerJoin(farmEvents, eq(farmEvents.id, eggStockMovements.eventId))
       .where(and(gte(farmEvents.businessDate, period.from), lte(farmEvents.businessDate, period.to), inArray(farmEvents.kind, eggKinds))),
     db.select({

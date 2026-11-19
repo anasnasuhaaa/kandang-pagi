@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, lte, ne, or } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte, ne, or } from "drizzle-orm";
 import { database, type Transaction } from "../../db";
 import {
   barnFeedCloses, barns, farmCash, farmEvents, feedMixInputs, feedMixes, feedMovements, feedProducts, feedReceipts,
@@ -192,23 +192,25 @@ export async function feedBarnBalance(store: Store, barnId: string) {
 export async function feedView(headers: Headers, period: { from: string; to: string }, db = database()) {
   const actor = await requireRole(headers, farmReaders, db);
   const includeMoney = actor.role !== "abk";
+  const inPeriod = and(gte(farmEvents.businessDate, period.from), lte(farmEvents.businessDate, period.to));
   const [projected, products, barnRows, events, purchaseRows, rawMovements, mixes] = await Promise.all([
     feedProjection(db, period.to, undefined, period.from),
     db.select().from(feedProducts).orderBy(feedProducts.name),
     db.select({ id: barns.id, name: barns.name, active: barns.active }).from(barns).orderBy(barns.name),
     db.select({
       id: farmEvents.id, kind: farmEvents.kind, day: farmEvents.businessDate, note: farmEvents.note, recordedAt: farmEvents.recordedAt,
-    }).from(farmEvents).where(and(inArray(farmEvents.kind, feedKinds), lte(farmEvents.businessDate, period.to)))
+    }).from(farmEvents).where(and(inArray(farmEvents.kind, feedKinds), inPeriod))
       .orderBy(asc(farmEvents.businessDate), asc(farmEventOrder)),
     db.select({
       id: feedReceipts.id, supplier: feedReceipts.supplier, productId: feedReceipts.productId, grams: feedReceipts.grams,
       ...(includeMoney ? { total: feedReceipts.totalIdr } : {}),
-    }).from(feedReceipts),
+    }).from(feedReceipts).innerJoin(farmEvents, eq(farmEvents.id, feedReceipts.id)).where(inPeriod),
     db.select({
       eventId: feedMovements.eventId, barnId: feedMovements.barnId, productId: feedMovements.productId,
       kind: feedMovements.kind, grams: feedMovements.deltaGrams,
-    }).from(feedMovements).innerJoin(farmEvents, eq(farmEvents.id, feedMovements.eventId)).where(lte(farmEvents.businessDate, period.to)),
-    db.select().from(feedMixes),
+    }).from(feedMovements).innerJoin(farmEvents, eq(farmEvents.id, feedMovements.eventId)).where(inPeriod),
+    db.select({ id: feedMixes.id, outputGrams: feedMixes.outputGrams, shrinkageGrams: feedMixes.shrinkageGrams }).from(feedMixes)
+      .innerJoin(farmEvents, eq(farmEvents.id, feedMixes.id)).where(inPeriod),
   ]);
   const balances = [...projected.balances.values()].map(({ value, ...row }) => ({ ...row, ...(includeMoney ? { value } : {}) }));
   const eventIds = events.map((event) => event.id);
@@ -216,7 +218,7 @@ export async function feedView(headers: Headers, period: { from: string; to: str
   const revoked = new Set(reversals.map(({ original }) => original));
   return {
     products: products as Product[], barns: barnRows, balances, daily: projected.daily,
-    events: events.filter(({ day }) => day >= period.from).reverse().map((event) => ({
+    events: events.reverse().map((event) => ({
       ...event, ...(actor.role === "abk" && event.kind === "feed_purchase" ? { note: "" } : {}),
       reversed: revoked.has(event.id),
       moves: rawMovements.filter(({ eventId }) => eventId === event.id),
