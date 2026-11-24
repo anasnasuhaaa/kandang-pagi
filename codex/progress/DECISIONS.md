@@ -135,6 +135,14 @@
 - Use Node 22 for a reproducible Docker development image with a digest-pinned base, an npm cache mount and runtime-only environment files. Provide PostgreSQL 17 as an optional local development service with its own volume and settings.
 - Use the existing shadcn CLI as a build-time dependency and scoped npm overrides for the advisory-affected transitive `minimatch` and `esbuild` versions. npm audit reported zero vulnerabilities after the overrides. This stage adds no schema migration.
 
+## Post-stage maintenance
+
+### A020 — Generated project structure inventory
+
+- Date/stage: 2026-11-24, documentation maintenance after Stage 07.
+- Status: Engineering assumption.
+- Generate `PROJECT_STRUCTURE.md` on demand from the current Git workspace, including untracked source files and ignored paths. Use Git's ignore rules, list names only, and collapse common generated directories to keep the inventory readable. The npm command also supports a read-only freshness check against the current workspace.
+
 ## Entry template
 
 ```markdown
@@ -156,3 +164,5 @@ Never delete decisions; mark superseded with a pointer to the replacement.
 - **A023, 2026-11-24, stages 03–04.** Use one table presentation and vary the sorting layer with the data source. Ledgers and the existing flock snapshot sort the authorized data before slicing. History and account lists keep SQL limits and use a checked column allowlist and stable tie order. PostgreSQL uses Indonesian ICU collation where installed and falls back to the database collation on lowercased text. Browser projections retain exact IDR and canonical grams, keep missing values last, and sort mixed dimensions by unit then amount.
 - **A024, 2026-11-24, stages 04 and 07.** Keep report table sort state local to each bounded section so the PDF consumes the existing display rows in their established order. Encode bigint sort values as tagged decimal strings at the server boundary and restore bigint in the browser. Use independent URL keys for the finance correction queue and reseller stock summary.
 - **A025, 2026-11-24, stages 05 and 09.** Open permission-filtered row workflows from the shared menu. Wait for menu dismissal, then open the existing dialog outside the menu portal with its own request key and focus target. On phones show one module selector and the contextual action together above the metrics. The desktop uses its existing tabs.
+- **A026, 2026-11-24, refinement follow-up.** Use `public/logo.png` for in-app branding. The sidebar uses the optimized image's transparency to apply `sidebar-primary` to the mark and wordmark in both themes. The visible wordmark supplies the home link's accessible name. Use Next.js file conventions for the browser and Apple touch icons.
+- **A027, 2026-11-24, refinement follow-up.** Name each pagination landmark after its table and space its mobile controls for 44 px targets. Order reseller packaging entries within the packaging group by absolute piece count using the stored conversion. Keep measured weight in grams and missing cash entries empty in the sort data.

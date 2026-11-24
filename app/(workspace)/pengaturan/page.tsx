@@ -56,7 +56,8 @@ async function SettingsContent({ searchParams }: Props) {
   return (
     <>
       <ModuleHeader title="Pengaturan" description="Kelola profil, tampilan, dan hak akses sesuai peran Anda." icon={Settings} />
-      <ModuleTabs tab={tab} tabs={visibleTabs} path={path}>
+      <ModuleTabs tab={tab} tabs={visibleTabs} path={path}
+        action={administrator && tab === "akun" ? <CreateAccountDialog /> : undefined}>
         {tab === "profil" && <ProfileForms name={actor.name} email={actor.email} role={actor.role} theme={actor.theme} />}
         {tab === "akun" && <AccountsContent search={params.cari} page={params.halaman} ownId={actor.id} sort={sort} />}
         {tab === "audit" && <AuditContent page={params.halaman} sort={sort} />}
@@ -78,17 +79,14 @@ async function AccountsContent({ search, page, ownId, sort }: { search: string; 
         columns={hasActions ? [...accountColumns, actionColumn] : accountColumns}
         sorting={{ path, query, current: currentSort }}
         toolbar={
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <form action={path} className="flex min-w-0 flex-wrap items-center gap-2">
-              <input type="hidden" name="tab" value="akun" />
-              {currentSort && Object.entries(sortParams(currentSort)).map(([key, value]) => <input key={key} type="hidden" name={key} value={value} />)}
-              <Input name="cari" defaultValue={search} aria-label="Cari nama atau email" placeholder="Cari nama atau email" className="w-full min-w-0 sm:w-48" />
-              <Button type="submit" variant="outline" className="min-h-10"><Search aria-hidden="true" />Cari</Button>
-            </form>
-            <CreateAccountDialog />
-          </div>
+          <form key={search} action={path} aria-label="Cari akun" className="flex min-w-0 flex-wrap items-center gap-2">
+            <input type="hidden" name="tab" value="akun" />
+            {currentSort && Object.entries(sortParams(currentSort)).map(([key, value]) => <input key={key} type="hidden" name={key} value={value} />)}
+            <Input name="cari" defaultValue={search} aria-label="Cari nama atau email" placeholder="Cari nama atau email" className="w-full min-w-0 sm:w-48" />
+            <Button type="submit" variant="outline" className="min-h-11 sm:min-h-10"><Search aria-hidden="true" />Cari</Button>
+          </form>
         }
-        pagination={<PageLinks current={current} pages={pages} path={path} total={total} query={{ ...query, ...sortParams(currentSort) }} />}
+        pagination={<PageLinks label="Akun pengguna" current={current} pages={pages} path={path} total={total} query={{ ...query, ...sortParams(currentSort) }} />}
         empty={<EmptyState title="Akun tidak ditemukan" description="Periksa kembali nama atau email yang dicari." />}>
         {rows.length ? rows.map((row, index) => (
           <DataTableRow key={row.id} number={(current - 1) * pageSize + index + 1}>
@@ -111,11 +109,11 @@ async function AuditContent({ page, sort }: { page: number; sort?: TableSort }) 
   return (
     <DataTable label="Riwayat audit akun"
       columns={auditColumns} sorting={{ path, query, current: currentSort }}
-      pagination={<PageLinks current={current} pages={pages} path={path} total={total} query={{ ...query, ...sortParams(currentSort) }} />}
+      pagination={<PageLinks label="Riwayat audit akun" current={current} pages={pages} path={path} total={total} query={{ ...query, ...sortParams(currentSort) }} />}
       empty={<EmptyState title="Belum ada riwayat akun" description="Aktivitas akun yang tercatat akan muncul di sini." />}>
       {rows.length ? rows.map((row, index) => (
         <DataTableRow key={row.id} number={(current - 1) * pageSize + index + 1}>
-          <TableCell>{localDateTime.format(row.at)}</TableCell><TableCell className="min-w-28 max-w-56 whitespace-normal wrap-anywhere">{row.actorName}</TableCell>
+          <TableCell className="tabular-nums">{localDateTime.format(row.at)}</TableCell><TableCell className="min-w-28 max-w-56 whitespace-normal wrap-anywhere">{row.actorName}</TableCell>
           <TableCell><StatusBadge label={roleLabels[row.actorRole]} /></TableCell><TableCell className="min-w-32 max-w-64 whitespace-normal wrap-anywhere">{accountAuditLabels[row.action] ?? row.action}</TableCell>
         </DataTableRow>
       )) : undefined}

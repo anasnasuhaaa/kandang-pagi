@@ -58,7 +58,7 @@ export function LedgerTable({
       empty={empty ?? <EmptyState title="Belum ada catatan" description={showPeriod
         ? "Catatan yang sesuai dengan periode dan pencarian akan tampil di sini."
         : "Catatan yang sesuai dengan pencarian dan filter akan tampil di sini."} />}
-      pagination={<PageLinks path={path} current={current} pages={pages} total={ordered.length} scope={scope}
+      pagination={<PageLinks label={label} path={path} current={current} pages={pages} total={ordered.length} scope={scope}
         query={{ ...params, ...sortParams(sort, scope) }} />}>
       {pageRows.length ? pageRows.map((row, index) => (
         <DataTableRow key={row.id} number={start + index + 1}>

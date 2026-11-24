@@ -1,9 +1,10 @@
 "use client";
 
+import { getImageProps } from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useId, useState } from "react";
-import { Boxes, ChevronDown, Egg, Moon, Sun, UserRound } from "lucide-react";
+import { Boxes, ChevronDown, Moon, Sun, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import {
@@ -22,6 +23,8 @@ import {
 import { canViewModule, feedSection, feedSections, feedTabSchema, modules, type Role } from "@/lib/navigation";
 
 export type WorkspaceUser = { name: string; role: Role; theme: Theme };
+
+const { props: { src: sidebarLogo } } = getImageProps({ src: "/logo.png", alt: "", width: 40, height: 40 });
 
 function FeedNavigation({ active, close }: { active: boolean; close: () => void }) {
   const id = useId();
@@ -66,8 +69,12 @@ function Navigation({ user }: { user?: WorkspaceUser }) {
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="h-16 justify-center border-b border-sidebar-border px-4">
-        <Link href={home} onClick={() => setOpenMobile(false)} className="flex w-fit items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-ring">
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><Egg aria-hidden="true" className="size-5" /></span>
+        <Link href={home} onClick={() => setOpenMobile(false)} className="flex min-h-11 w-fit items-center gap-1.5 rounded-lg text-sidebar-primary focus-visible:outline-2 focus-visible:outline-ring">
+          <span
+            aria-hidden="true"
+            className="size-10 shrink-0 bg-current mask-contain mask-center mask-no-repeat"
+            style={{ maskImage: `url("${sidebarLogo}")` }}
+          />
           <span className="text-base font-semibold tracking-tight">Kandang Pagi</span>
         </Link>
       </SidebarHeader>

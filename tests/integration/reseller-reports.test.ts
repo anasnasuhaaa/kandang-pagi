@@ -110,6 +110,17 @@ test("independent reseller ledgers and authorized historical PDF reports", async
 
     const own = await reportData(resellerA.headers, { jenis: "reseller", mulai: d1, akhir: today, tenantId: spaceB.id }, db);
     assert.equal(own.metrics.find(({ label }) => label === "Saldo akhir kas")?.value, formatIDR(BigInt(295000)));
+    const movements = own.sections.find(({ title }) => title === "Pergerakan stok dan kas")!;
+    const unitColumn = movements.tableColumns.findIndex(({ key }) => key === "unit");
+    const cashColumn = movements.tableColumns.findIndex(({ key }) => key === "cash");
+    const intakeIndex = movements.rowMeta.findIndex(({ id }) => id === intakeA);
+    assert.equal(movements.rows[intakeIndex][unitColumn], "4 x 24 butir");
+    assert.deepEqual(movements.rowMeta[intakeIndex].values[unitColumn], { unit: "kemasan", amount: 96 });
+    const weighedIntake = movements.rowMeta.find(({ values }) => {
+      const unit = values[unitColumn];
+      return typeof unit === "object" && unit !== null && "unit" in unit && unit.unit === "kg";
+    });
+    assert.equal(weighedIntake?.values[cashColumn], null);
     assert.ok(!JSON.stringify(own).includes("Kotak rahasia B"));
     assert.ok(!JSON.stringify(own).includes("Data privat ruang B"));
     const bytes = await renderReportPdf(own);

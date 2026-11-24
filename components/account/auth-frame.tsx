@@ -1,4 +1,4 @@
-import { Egg } from "lucide-react";
+import Image from "next/image";
 import type { ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -6,9 +6,16 @@ export function AuthFrame({ title, description, children }: { title: string; des
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-8">
       <div className="w-full min-w-0 max-w-md">
-        <div className="mb-4 flex items-center justify-center gap-2.5">
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><Egg aria-hidden="true" className="size-5" /></span>
-          <span className="font-semibold">Kandang Pagi</span>
+        <div className="mb-6 flex items-center justify-center gap-2">
+          <Image
+            src="/logo.png"
+            alt=""
+            width={48}
+            height={48}
+            className="size-12 shrink-0 object-contain"
+            loading="eager"
+          />
+          <span className="text-xl font-bold tracking-tight text-foreground">Kandang Pagi</span>
         </div>
         <Card>
           <CardHeader>

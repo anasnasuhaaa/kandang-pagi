@@ -44,7 +44,7 @@ export function ReportTable({ section }: { section: ReportSection }) {
       <DataTable label={section.title} columns={section.tableColumns}
         sorting={{ current: sort, onSort: (next) => { setSort(next); table.setPageIndex(0); } }}
         empty={<p className="p-4 text-sm text-muted-foreground">Belum ada catatan pada cakupan ini.</p>}
-        pagination={<PageLinks current={pagination.pageIndex + 1} pages={Math.max(1, table.getPageCount())}
+        pagination={<PageLinks label={section.title} current={pagination.pageIndex + 1} pages={Math.max(1, table.getPageCount())}
           total={rows.length} onPage={(page) => table.setPageIndex(page - 1)} />}>
         {pageRows.length ? pageRows.map((row, index) => <DataTableRow key={row.id} number={pagination.pageIndex * pagination.pageSize + index + 1}>
           {section.tableColumns.map((column, position) => {

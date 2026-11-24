@@ -92,7 +92,7 @@ async function PopulationContent({ searchParams }: Props) {
           empty={<EmptyState title="Belum ada catatan" description={
             tab === "kelompok" && !activeBarns.length ? "Diperlukan kandang aktif sebelum mencatat kelompok." : "Catatan yang sesuai dengan pencarian dan filter akan muncul di sini."
           } />}
-          pagination={<PageLinks path={path} current={data.current} pages={data.pages} total={data.total} query={{ ...query, ...sortParams(sort) }} />}>
+          pagination={<PageLinks label={title} path={path} current={data.current} pages={data.pages} total={data.total} query={{ ...query, ...sortParams(sort) }} />}>
           {rows.length ? rows : undefined}
         </DataTable>
       </ModuleTabs>
@@ -119,8 +119,8 @@ function renderFlocks(data: View) {
     return (
       <DataTableRow key={flock.id} number={(data.current - 1) * data.pageSize + index + 1}>
         <TableCell className="min-w-32 max-w-64 whitespace-normal wrap-anywhere"><span className="font-medium">{flock.name}</span><span className="block text-xs text-muted-foreground">{flock.code}</span></TableCell>
-        <TableCell>{barn?.name ?? "—"}</TableCell><TableCell className="text-right tabular-nums">{position ? formatQuantity(position.alive) : "—"}</TableCell>
-        <TableCell className="text-right tabular-nums">{formatQuantity(flock.initialHenHoused)}</TableCell><TableCell>{formatDate(flock.placedOn)}</TableCell>
+        <TableCell className="max-w-64 whitespace-normal wrap-anywhere">{barn?.name ?? "—"}</TableCell><TableCell className="text-right tabular-nums">{position ? formatQuantity(position.alive) : "—"}</TableCell>
+        <TableCell className="text-right tabular-nums">{formatQuantity(flock.initialHenHoused)}</TableCell><TableCell className="tabular-nums">{formatDate(flock.placedOn)}</TableCell>
         <TableCell className="text-right tabular-nums">{formatQuantity(flock.initialAgeDays)} hari</TableCell><TableCell className="min-w-28 max-w-56 whitespace-normal wrap-anywhere">{flock.origin}</TableCell>
         <TableCell><StatusBadge label={flockPlacementStatus(position?.alive)} tone={position?.alive ? "success" : position ? "neutral" : "warning"} /></TableCell>
       </DataTableRow>
@@ -135,13 +135,18 @@ function canCancel(move: View["history"][number]) {
 function renderMoves(data: View, audit: boolean, admin: boolean) {
   return data.history.map((move, index) => (
     <DataTableRow key={move.id} number={(data.current - 1) * data.pageSize + index + 1}>
-      <TableCell className="font-medium">{formatDate(move.day)}</TableCell>
-      <TableCell>{move.flock}</TableCell><TableCell><SemanticIndicator {...statusPresentation(movementPresentation, move.kind)} icon={movementIcons[move.kind]} /></TableCell><TableCell className="text-right tabular-nums">{formatQuantity(move.count)} ekor</TableCell>
-      <TableCell>{move.from ?? "—"}</TableCell><TableCell>{move.to ?? "—"}</TableCell><TableCell className="min-w-32 max-w-xs whitespace-normal wrap-anywhere">{move.note}</TableCell>
+      <TableCell className="font-medium tabular-nums">{formatDate(move.day)}</TableCell>
+      <TableCell className="min-w-32 max-w-64 whitespace-normal wrap-anywhere">{move.flock}</TableCell>
+      <TableCell><SemanticIndicator {...statusPresentation(movementPresentation, move.kind)} icon={movementIcons[move.kind]} /></TableCell>
+      <TableCell className="text-right tabular-nums">{formatQuantity(move.count)} ekor</TableCell>
+      <TableCell className="max-w-64 whitespace-normal wrap-anywhere">{move.from ?? "—"}</TableCell>
+      <TableCell className="max-w-64 whitespace-normal wrap-anywhere">{move.to ?? "—"}</TableCell>
+      <TableCell className="min-w-32 max-w-xs whitespace-normal wrap-anywhere">{move.note}</TableCell>
       {audit && <>
-        <TableCell>{move.actor}</TableCell><TableCell>{recorded.format(move.recordedAt)}</TableCell>
+        <TableCell className="min-w-32 max-w-64 whitespace-normal wrap-anywhere">{move.actor}</TableCell>
+        <TableCell className="tabular-nums">{recorded.format(move.recordedAt)}</TableCell>
         <TableCell><StatusBadge {...recordStatus(!move.reversal)} />
-          {move.reversalReason && <span className="mt-1 block max-w-48 whitespace-normal text-xs text-muted-foreground">{move.reversalReason}</span>}
+          {move.reversalReason && <span className="mt-1 block max-w-48 whitespace-normal wrap-anywhere text-xs text-muted-foreground">{move.reversalReason}</span>}
         </TableCell>
         {admin && <TableCell className="w-px text-right">{canCancel(move)
           ? <RowActions actions={[{ id: "cancel", label: "Batalkan mutasi", icon: "cancel", destructive: true, content: <CancelMovementAction eventId={move.id} /> }]} /> : null}</TableCell>}

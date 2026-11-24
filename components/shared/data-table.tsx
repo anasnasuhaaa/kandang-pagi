@@ -25,7 +25,7 @@ function SortHeader({ column, sorting }: { column: DataColumn; sorting: Sorting 
   return <Button variant="ghost" size="sm" type={link ? undefined : "button"} nativeButton={!link}
     render={link ? <Link href={link} scroll={false} /> : undefined}
     aria-label={`${action}: ${column.label}`}
-    className={cn("-mx-2 min-h-10 gap-1 px-2 font-semibold", direction && "text-primary")}
+    className={cn("-mx-2 min-h-11 gap-1 px-2 font-semibold sm:min-h-10", direction && "text-primary")}
     onClick={"onSort" in sorting ? () => sorting.onSort(next) : undefined}>
     {column.label}<Icon className="size-3.5" aria-hidden="true" />
   </Button>;

@@ -41,3 +41,24 @@ Pelaksanaan 24 November 2026 (WIB), dimulai dari `b5995ce`. Aplikasi memakai Pop
 Basis data integrasi dan browser merupakan basis data PostgreSQL 18 lokal yang terpisah. Refinement ini tidak menambah migrasi. Uji browser memakai Chromium dan emulasi viewport. Pemeriksaan visual Populasi dilakukan pada 390 dan 1440 px. Axe tidak menemukan pelanggaran pada Dashboard dan tabel Populasi terisi yang diurutkan dalam kedua tema. Pengujian lintas modul mencakup Administrator, Pemilik, ABK dan Reseller. Uji integrasi untuk bukti memakai penyedia tiruan. Unggahan ImageKit nyata dan penerapan Vercel berada di luar verifikasi ini.
 
 Perubahan awal pengguna dipertahankan, termasuk skrip dan konfigurasi peta proyek yang sudah ada. Seluruh commit refinement dibuat lokal. Tidak ada Git push.
+
+## Tindak lanjut setelah `ea07864`
+
+Riwayat Git mengonfirmasi tahap refinement 01–10 memiliki commit masing-masing. Pemeriksaan lanjutan menyelesaikan perubahan lokal yang berkaitan dengan antarmuka dan logo baru.
+
+- Ikon dan tulisan Kandang Pagi di sidebar mengikuti `sidebar-primary` pada tema terang dan gelap. Sidebar memakai transparansi `public/logo.png` melalui versi gambar yang dioptimalkan. Pembaca layar memperoleh nama tautan dari tulisan yang terlihat.
+- Halaman Masuk dan Akses memakai logo yang sama bersama nama aplikasi. Halaman 404 memakai teks alternatif untuk logo. Favicon 512 × 512 dan ikon Apple 180 × 180 memakai [konvensi berkas Next.js](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/app-icons).
+- Paginasi menyebut nama tabel, menyediakan target sentuh 44 px pada layar kecil, dan menampilkan label Sebelumnya dan Berikutnya pada desktop. Tab Akun menempatkan Tambah akun di dekat pemilih tab. Teks panjang pada riwayat Populasi dapat membungkus di dalam kolom.
+- Pengurutan kemasan Reseller memakai jumlah butir absolut dari konversi yang tersimpan. Berat terukur tetap dibandingkan dalam gram. Penerimaan tanpa kas terkait menampilkan nilai kosong. Label konversi dan susunan baris ekspor PDF tetap mengikuti proyeksi laporan.
+- Perintah `docs:structure` dapat dijalankan dengan skrip yang disertakan. Tidak ada migrasi atau perubahan data operasional.
+
+| Pemeriksaan ulang | Hasil akhir |
+| --- | --- |
+| `npm run lint` dan `npm run typecheck` | Lolos dengan kode keluar 0. Lint sempat bertabrakan dengan pembuatan ulang direktori `test-results` oleh Playwright dan lulus saat dijalankan ulang. |
+| `npm test` | 20 lolos. |
+| `npm run test:integration` | 32 lolos di PostgreSQL 18 lokal terisolasi, termasuk nilai urutan kemasan dan kas kosong di laporan Reseller. |
+| `npm run build` | Lolos di Next.js 16.4.6 dengan Poppins dan rute ikon PNG. |
+| `npm run test:e2e -- --workers=1 --timeout=90000` | 20 lolos di Chromium pada basis data uji baru. Sembilan viewport 320–1440 px, keempat peran, dua tema, ikon browser dan Apple, target paginasi, dan unduhan PDF tercakup. Axe lulus di kedua tema. |
+| `npm run docs:structure` dan `npm run docs:structure -- --check` | Keduanya lolos. |
+
+Putaran Chromium awal lulus 10 dari 20. Skenario logo menyimpan preferensi gelap pada akun Administrator bersama dan memengaruhi 10 skenario berikutnya. Skenario logo kini mengubah preferensi perangkat di konteks browser. Verifikasi tetap memakai penyedia bukti tiruan dan mencakup build lokal.

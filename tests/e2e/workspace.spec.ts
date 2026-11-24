@@ -68,6 +68,49 @@ const modules = [
   ["Laporan", "/laporan"], ["Pengaturan", "/pengaturan"],
 ];
 
+test("logo dan ikon Kandang Pagi tampil pada halaman publik dan sidebar", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 840 });
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/masuk");
+  const signInLogo = page.getByRole("main").locator("img");
+  await expect(signInLogo).toBeVisible();
+  await expect.poll(() => signInLogo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+
+  for (const [rel, sizes] of [["icon", "512x512"], ["apple-touch-icon", "180x180"]]) {
+    const icon = page.locator(`link[rel="${rel}"]`);
+    await expect(icon).toHaveCount(1);
+    await expect(icon).toHaveAttribute("sizes", sizes);
+    const response = await page.request.get((await icon.getAttribute("href"))!);
+    expect(response.ok()).toBe(true);
+    expect(response.headers()["content-type"]).toBe("image/png");
+  }
+
+  for (const path of ["/akses", "/tidak-ada"]) {
+    await page.goto(path);
+    const logo = page.getByRole("main").locator("img");
+    await expect(logo).toBeVisible();
+    await expect.poll(() => logo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  }
+
+  await signIn(page);
+  const trigger = page.getByRole("button", { name: "Buka atau tutup navigasi" });
+  const brand = page.getByRole("link", { name: "Kandang Pagi", exact: true });
+  await trigger.click();
+  await expect(brand).toHaveAttribute("href", "/dashboard");
+  await expect(brand).toHaveCSS("color", "rgb(220, 38, 38)");
+  const mark = brand.locator("[aria-hidden=true]");
+  await expect(mark).toHaveCSS("background-color", "rgb(220, 38, 38)");
+  const mask = await mark.evaluate((node) => getComputedStyle(node).maskImage);
+  const source = mask.match(/^url\("(.+)"\)$/)?.[1];
+  expect(source).toBeDefined();
+  expect((await page.request.get(source!)).ok()).toBe(true);
+  await page.keyboard.press("Escape");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(brand).toHaveCSS("color", "rgb(248, 113, 113)");
+  await expect(mark).toHaveCSS("background-color", "rgb(248, 113, 113)");
+});
+
 for (const width of [320, 360, 375, 390, 430, 768, 1024, 1280, 1440]) {
   test(`navigasi, tema, dan lebar halaman ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 840 });
@@ -776,8 +819,11 @@ test("ledger and report sorting work across filtered pages and preserve PDF scop
   await expect(table.locator('th[data-column="amount"]')).toHaveAttribute("aria-sort", "ascending");
   await expect(first.getByRole("cell").first()).toHaveText("1");
   await expect(first.getByRole("cell", { name: idr(0), exact: true })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Paginasi" })).toContainText("17 hasil");
-  await page.getByRole("link", { name: "Berikutnya" }).click();
+  const pagination = page.getByRole("navigation", { name: "Paginasi Buku kas farm", exact: true });
+  await expect(pagination).toContainText("17 hasil");
+  const nextPage = pagination.getByRole("link", { name: "Berikutnya" });
+  await expect(nextPage).toHaveCSS("min-height", "44px");
+  await nextPage.click();
   await expect(first.getByRole("cell").first()).toHaveText("13");
   await expect(first.getByRole("cell", { name: idr(12), exact: true })).toBeVisible();
   await table.getByLabel("Urutkan turun: Jumlah").click();
@@ -786,12 +832,13 @@ test("ledger and report sorting work across filtered pages and preserve PDF scop
   const filters = page.getByRole("form", { name: "Filter catatan" });
   await filters.getByLabel("Cari catatan").fill("Tidak ada hasil yang cocok");
   await filters.getByRole("button", { name: "Terapkan filter" }).click();
-  await expect(page.getByRole("navigation", { name: "Paginasi" })).toContainText("0 hasil");
+  await expect(pagination).toContainText("0 hasil");
   await expect(table.locator('th[data-column="amount"]')).toHaveAttribute("aria-sort", "descending");
   await table.getByLabel("Kembalikan urutan awal: Jumlah").click();
   await expect(table.locator("th[aria-sort]")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/laporan?jenis=keuangan&cari=Regresi+urutan");
   const report = page.getByRole("table", { name: "Buku kas farm" });
   const pdfLink = page.getByRole("link", { name: "Unduh PDF" });
@@ -799,7 +846,9 @@ test("ledger and report sorting work across filtered pages and preserve PDF scop
   await report.getByLabel("Urutkan naik: Jumlah").click();
   await expect(report.locator('th[data-column="amount"]')).toHaveAttribute("aria-sort", "ascending");
   await expect(report.locator("tbody tr").first().getByRole("cell", { name: idr(0), exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Berikutnya" }).click();
+  const nextReportPage = pagination.getByRole("button", { name: "Berikutnya" });
+  await expect(nextReportPage.getByText("Berikutnya", { exact: true })).toBeVisible();
+  await nextReportPage.click();
   await expect(report.locator("tbody tr").first().getByRole("cell").first()).toHaveText("16");
   await expect(report.locator("tbody tr").first().getByRole("cell", { name: idr(15), exact: true })).toBeVisible();
   expect(await pdfLink.getAttribute("href")).toBe(href);

@@ -35,3 +35,4 @@ Baseline audit lokal `b5995ce`. Konfigurasi `base-nova` menggunakan Base UI 1.9,
 - Urutan nominal dan berat memakai data mentah. Sel gabungan memakai nilai utama yang sesuai, seperti nama kelompok, tanggal lot, total butir penjualan, atau jumlah bersih pergerakan. Nilai koreksi dan satuan campuran dikelompokkan menurut dimensi sebelum dibandingkan.
 - Status dipetakan dari nilai skema dan proyeksi aktual. Nilai tidak dikenal memakai status netral. Menu baris mengikuti pembatasan peran dan kondisi transaksi. Cakupan laporan PDF tetap ditentukan oleh filter laporan.
 - Baseline browser memeriksa 320, 375, 768 dan 1440 px serta kontras dan struktur dalam dua tema. Hasil akhir dan batas verifikasi tercatat di [laporan refinement](reports/UI_UX_REFINEMENT_REPORT.md).
+- Tindak lanjut setelah `ea07864` memeriksa landmark paginasi per tabel, urutan kemasan Reseller, aksi akun pada tab Pengaturan, serta logo di halaman publik dan sidebar dalam kedua tema.

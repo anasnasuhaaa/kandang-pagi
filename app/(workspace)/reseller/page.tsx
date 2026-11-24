@@ -111,14 +111,14 @@ function resellerRows(data: View, tab: z.infer<typeof tabSchema>, today: string)
     const categoryName = stock ? category(stock.category) : cash?.category ?? "—";
     const detail = tab === "kas" ? [cash?.category ?? "—", cash ? formatIDR(cash.deltaIdr) : "—"] : [
       categoryName, pieces(stock?.deltaPieces ?? 0), converted,
-      ...(tab !== "stok" ? [cash ? formatIDR(cash.deltaIdr) : formatIDR(BigInt(0))] : []),
+      ...(tab !== "stok" ? [cash ? formatIDR(cash.deltaIdr) : "—"] : []),
     ];
-    const convertedValue = stock?.unit === "packaging" ? { unit: "kemasan", amount: stock.unitCount ?? 0 } :
+    const convertedValue = stock?.unit === "packaging" ? { unit: "kemasan", amount: Math.abs(stock.deltaPieces) } :
       stock?.unit === "kg" && stock.actualGrams ? { unit: "kg", amount: stock.actualGrams } :
         stock ? { unit: "butir", amount: stock.deltaPieces } : null;
     const values = tab === "kas" ? [ledgerCell(cash?.category, detail[0]), ledgerCell(cash?.deltaIdr, detail[1])] :
       [stock ? ledgerBadge(stock.category === "campur" ? { label: categoryName, tone: "info" } : statusPresentation(eggPresentation, stock.category)) : categoryName, ledgerCell(stock?.deltaPieces, detail[1]), ledgerCell(convertedValue, converted),
-        ...(tab !== "stok" ? [ledgerCell(cash?.deltaIdr ?? BigInt(0), detail[3])] : [])];
+        ...(tab !== "stok" ? [ledgerCell(cash?.deltaIdr, detail[3])] : [])];
     return {
       id: row.id, filter: tab === "kas" ? cash?.direction : stock?.category,
       search: [formatDate(row.day), label, categoryName, row.note, ...detail].join(" "),

@@ -3,6 +3,7 @@
 ## Brand and appearance
 
 - Product name: **Kandang Pagi**.
+- Use the supplied logo from `public/logo.png` in the application. The sidebar mark and wordmark use `sidebar-primary` in both themes. Use the App Router icon files for the browser tab and Apple touch icon.
 - Client-requested primary **red**; proposed token `#DC2626` with hover `#B91C1C`, pale red for subtle selected states. Preserve flexibility if the client later provides official brand colors.
 - **Poppins** via `next/font/google`, applied consistently to body, forms, dialogs, tables, navigation, charts and PDF UI where applicable.
 - Both **Light** and **Dark** themes with per-user preference (local temporary preference acceptable pre-auth; account-saved preference when authenticated). Ensure no hydration flash in final app. Contrast must remain accessible.

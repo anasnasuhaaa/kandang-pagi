@@ -7,6 +7,7 @@
 - Project: Kandang Pagi real client farm management web application.
 - Source repository: **already initialized by user**; do not recreate Git/Next.js.
 - UI/UX refinement stages 01–10 are complete. See the [refinement report](reports/UI_UX_REFINEMENT_REPORT.md).
+- The refinement follow-up verifies the branded sidebar, browser icons, table pagination and the remaining local presentation changes. See the follow-up in the same report.
 - Last completed pre-refinement stage: **10 — Feed navigation and workflows**.
 - All nine core modules are implemented and verified locally.
 - Manual release instructions are in the [release runbook](../RELEASE_RUNBOOK.md).

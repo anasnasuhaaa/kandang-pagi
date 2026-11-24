@@ -62,8 +62,9 @@ kandang-pagi/
 │   │   └── laporan/
 │   │       └── pdf/
 │   │           └── route.ts
+│   ├── apple-icon.png
 │   ├── globals.css
-│   ├── icon.svg
+│   ├── icon.png
 │   ├── layout.tsx
 │   ├── masuk/
 │   │   └── page.tsx
@@ -228,6 +229,7 @@ kandang-pagi/
 ├── public/
 │   ├── file.svg
 │   ├── globe.svg
+│   ├── logo.png
 │   ├── next.svg
 │   ├── vercel.svg
 │   └── window.svg

@@ -201,7 +201,7 @@ async function resellerReport(headers: Headers, period: Period, input: ReportInp
     && (!input.transaksi || event.cash?.direction === input.transaksi)).map((event) => {
     const stock = event.stock;
     const measured = stock?.actualGrams ? cell({ unit: "kg", amount: stock.actualGrams }, mass(stock.actualGrams)) :
-      stock?.piecesPerUnit ? cell({ unit: "kemasan", amount: stock.unitCount ?? 0 }, `${stock.unitCount} x ${stock.piecesPerUnit} butir`) :
+      stock?.piecesPerUnit ? cell({ unit: "kemasan", amount: Math.abs(stock.deltaPieces) }, `${stock.unitCount} x ${stock.piecesPerUnit} butir`) :
         cell(null, "-");
     return { id: event.id, cells: [
       cell(event.day, formatDate(event.day)), stock ? reportBadge(stock.category === "campur" ? { label: "Campuran", tone: "info" } : statusPresentation(eggPresentation, stock.category)) : event.cash?.category ?? "Kas",

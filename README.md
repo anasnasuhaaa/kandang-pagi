@@ -2,6 +2,8 @@
 
 Aplikasi web operasional peternakan ayam petelur. Panduan implementasi, aturan bisnis, dan laporan verifikasi tersedia di [codex/README.md](codex/README.md).
 
+Lihat daftar berkas dan folder, termasuk path lokal yang diabaikan Git, di [Struktur Proyek](PROJECT_STRUCTURE.md). Jalankan `npm run docs:structure` setelah menambah, memindahkan, atau menghapus berkas.
+
 ## Pengembangan lokal
 
 Gunakan Node.js 22 dan npm. Jalankan `npm ci` lalu `npm run dev` dan buka [localhost:3000](http://localhost:3000). `npm run lint`, `npm run typecheck`, dan `npm run build` memeriksa kode dan build produksi. Build mengambil Poppins dari Google melalui `next/font`.
