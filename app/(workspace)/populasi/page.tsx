@@ -5,12 +5,12 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { PopulationFilters } from "@/components/population/filters";
 import { BarnForm, BarnStatusAction, CancelMovementAction, FlockForm, MovementForm } from "@/components/population/forms";
-import { DataTable } from "@/components/shared/data-table";
+import { DataTable, DataTableRow } from "@/components/shared/data-table";
 import { EmptyState, MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { ModuleTabs } from "@/components/shared/module-tabs";
 import { PageLinks } from "@/components/shared/page-links";
 import { Badge } from "@/components/ui/badge";
-import { TableCell, TableRow } from "@/components/ui/table";
+import { TableCell } from "@/components/ui/table";
 import { movementLabels, populationPeriod } from "@/lib/domain/population-input";
 import { businessDate, businessTimeZone, formatDate, formatQuantity } from "@/lib/format";
 import { requireModule } from "@/server/auth/workspace";
@@ -89,35 +89,35 @@ async function PopulationContent({ searchParams }: Props) {
 }
 
 function renderBarns(data: View, admin: boolean) {
-  return data.barns.map((barn) => (
-    <TableRow key={barn.id}>
+  return data.barns.map((barn, index) => (
+    <DataTableRow key={barn.id} number={(data.current - 1) * 12 + index + 1}>
       <TableCell className="font-medium">{barn.code}</TableCell>
       <TableCell>{barn.name}</TableCell><TableCell>{barn.location || "—"}</TableCell>
       <TableCell><Badge variant={barn.active ? "secondary" : "outline"}>{barn.active ? "Aktif" : "Nonaktif"}</Badge></TableCell>
       {admin && <TableCell><BarnStatusAction barnId={barn.id} name={barn.name} active={barn.active} /></TableCell>}
-    </TableRow>
+    </DataTableRow>
   ));
 }
 
 function renderFlocks(data: View) {
-  return data.flocks.map((flock) => {
+  return data.flocks.map((flock, index) => {
     const position = data.snapshot.placements.get(flock.id);
     const barn = data.barnOptions.find((item) => item.id === position?.barnId);
     return (
-      <TableRow key={flock.id}>
+      <DataTableRow key={flock.id} number={(data.current - 1) * 12 + index + 1}>
         <TableCell><span className="font-medium">{flock.name}</span><span className="ml-2 text-muted-foreground">{flock.code}</span></TableCell>
         <TableCell>{barn?.name ?? "—"}</TableCell><TableCell>{position ? formatQuantity(position.alive) : "—"}</TableCell>
         <TableCell>{formatQuantity(flock.initialHenHoused)}</TableCell><TableCell>{formatDate(flock.placedOn)}</TableCell>
         <TableCell>{formatQuantity(flock.initialAgeDays)} hari</TableCell><TableCell>{flock.origin}</TableCell>
         <TableCell><Badge variant={position?.alive ? "secondary" : "outline"}>{position ? position.alive ? "Aktif" : "Selesai" : "Belum ditempatkan"}</Badge></TableCell>
-      </TableRow>
+      </DataTableRow>
     );
   });
 }
 
 function renderMoves(data: View, audit: boolean, admin: boolean) {
-  return data.history.map((move) => (
-    <TableRow key={move.id}>
+  return data.history.map((move, index) => (
+    <DataTableRow key={move.id} number={(data.current - 1) * 12 + index + 1}>
       <TableCell className="font-medium">{formatDate(move.day)}</TableCell>
       <TableCell>{move.flock}</TableCell><TableCell>{movementLabels[move.kind]}</TableCell><TableCell>{formatQuantity(move.count)} ekor</TableCell>
       <TableCell>{move.from ?? "—"}</TableCell><TableCell>{move.to ?? "—"}</TableCell><TableCell className="max-w-xs whitespace-normal">{move.note}</TableCell>
@@ -129,6 +129,6 @@ function renderMoves(data: View, audit: boolean, admin: boolean) {
         {admin && <TableCell>{!move.reversal && move.kind !== "opening" && move.kind !== "arrival"
           ? <CancelMovementAction eventId={move.id} /> : "—"}</TableCell>}
       </>}
-    </TableRow>
+    </DataTableRow>
   ));
 }

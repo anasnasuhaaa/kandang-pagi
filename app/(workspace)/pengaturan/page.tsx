@@ -6,7 +6,7 @@ import { z } from "zod";
 import { CorrectionTable } from "@/components/finance/correction-table";
 import { AccountControls, CreateAccountDialog } from "@/components/account/account-controls";
 import { ProfileForms } from "@/components/account/profile-forms";
-import { DataTable } from "@/components/shared/data-table";
+import { DataTable, DataTableRow } from "@/components/shared/data-table";
 import { EmptyState, MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { ModuleTabs } from "@/components/shared/module-tabs";
 import { PageLinks } from "@/components/shared/page-links";
@@ -14,7 +14,7 @@ import { StatusBadge, statusPresentation } from "@/components/shared/status-badg
 import { accountPresentation } from "@/lib/status-presentation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TableCell, TableRow } from "@/components/ui/table";
+import { TableCell } from "@/components/ui/table";
 import { ledgerQuery } from "@/lib/domain/ledger-query";
 import { businessTimeZone } from "@/lib/format";
 import { roleLabels } from "@/lib/roles";
@@ -94,14 +94,14 @@ async function AccountsContent({ search, page, ownId }: { search: string; page: 
         }
         pagination={<PageLinks current={current} pages={pages} path={path} query={{ tab: "akun", cari: search }} />}
         empty={<EmptyState title="Akun tidak ditemukan" description="Periksa kembali nama atau email yang dicari." />}>
-        {rows.length ? rows.map((row) => (
-          <TableRow key={row.id}>
+        {rows.length ? rows.map((row, index) => (
+          <DataTableRow key={row.id} number={(current - 1) * 12 + index + 1}>
             <TableCell className="font-medium">{row.name}</TableCell>
             <TableCell>{row.email}</TableCell>
             <TableCell>{roleLabels[row.role]}</TableCell>
             <TableCell><StatusBadge {...statusPresentation(accountPresentation, row.status)} /></TableCell>
             <TableCell>{row.id === ownId ? "Akun Anda" : <AccountControls userId={row.id} name={row.name} role={row.role} status={row.status} />}</TableCell>
-          </TableRow>
+          </DataTableRow>
         )) : undefined}
       </DataTable>
     </div>
@@ -115,11 +115,11 @@ async function AuditContent({ page }: { page: number }) {
       columns={["Waktu (WIB)", "Pengguna", "Peran", "Tindakan"].map((label) => ({ label, key: label }))}
       pagination={<PageLinks current={current} pages={pages} path={path} query={{ tab: "audit" }} />}
       empty={<EmptyState title="Belum ada riwayat akun" description="Aktivitas akun yang tercatat akan muncul di sini." />}>
-      {rows.length ? rows.map((row) => (
-        <TableRow key={row.id}>
+      {rows.length ? rows.map((row, index) => (
+        <DataTableRow key={row.id} number={(current - 1) * 15 + index + 1}>
           <TableCell>{localDateTime.format(row.at)}</TableCell><TableCell>{row.actorName}</TableCell>
           <TableCell>{roleLabels[row.actorRole]}</TableCell><TableCell>{auditLabels[row.action] ?? row.action}</TableCell>
-        </TableRow>
+        </DataTableRow>
       )) : undefined}
     </DataTable>
   );
