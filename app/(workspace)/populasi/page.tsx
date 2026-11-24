@@ -1,6 +1,6 @@
 import { RowActions } from "@/components/shared/row-actions";
 import type { Metadata } from "next";
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, CircleMinus, House, Minus, PackageOpen } from "lucide-react";
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, Bird, CircleMinus, House, Minus, PackageOpen, Users } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
@@ -79,10 +79,10 @@ async function PopulationContent({ searchParams }: Props) {
     <>
       <ModuleHeader title="Populasi Ternak" description="Pantau penempatan ternak dan perubahan jumlah per tanggal operasional." icon={House} action={action} />
       <section aria-label="Ringkasan populasi" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Ternak hidup" value={date.known ? `${formatQuantity(date.hens)} ekor` : "Belum ada data"} detail={formatDate(date.day)} />
-        <MetricCard label="Kelompok aktif" value={date.known ? formatQuantity(date.activeFlocks) : "Belum ada data"} detail={formatDate(date.day)} />
-        <MetricCard label="Kematian tercatat" value={date.known ? `${formatQuantity(date.deaths)} ekor` : "Belum ada data"} detail={formatDate(date.day)} />
-        <MetricCard label="Kandang aktif saat ini" value={formatQuantity(data.barnOptions.filter(({ active }) => active).length)} />
+        <MetricCard icon={Bird} label="Ternak hidup" value={date.known ? `${formatQuantity(date.hens)} ekor` : "Belum ada data"} detail={formatDate(date.day)} />
+        <MetricCard icon={Users} label="Kelompok aktif" value={date.known ? formatQuantity(date.activeFlocks) : "Belum ada data"} detail={formatDate(date.day)} />
+        <MetricCard icon={CircleMinus} label="Kematian tercatat" value={date.known ? `${formatQuantity(date.deaths)} ekor` : "Belum ada data"} detail={formatDate(date.day)} />
+        <MetricCard icon={House} label="Kandang aktif saat ini" value={formatQuantity(data.barnOptions.filter(({ active }) => active).length)} />
       </section>
       <ModuleTabs path={path} tab={tab} tabs={tabs}>
         <DataTable label={title} columns={hasActions ? [...columns, actionColumn] : columns} sorting={{ path, query, current: sort }}

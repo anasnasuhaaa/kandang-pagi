@@ -2,7 +2,7 @@ import { RowActions } from "@/components/shared/row-actions";
 import { tableColumn as col } from "@/components/shared/data-table";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight, Boxes, Shuffle } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Boxes, CalendarCheck, House, Scale, Shuffle, Warehouse } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
@@ -77,7 +77,7 @@ function ProductSection({ data, query, administrator }: { data: View; query: Que
     <ModuleHeader title={productsPage.label} description="Daftar bahan pakan, pakan siap pakai, dan hasil campuran yang dapat dipilih saat pencatatan." icon={Boxes}
       action={administrator && <ProductForm />} />
     <section className="grid gap-3 sm:grid-cols-3" aria-label="Ringkasan jenis pakan aktif">
-      {feedTypes.map(({ value, label }) => <MetricCard key={value} label={label}
+      {feedTypes.map(({ value, label }) => <MetricCard key={value} icon={Boxes} label={label}
         value={data.products.filter(({ active, kind }) => active && kind === value).length} detail="Jenis aktif" />)}
     </section>
     <LedgerTable path={path} tab={productsPage.value} query={query} label="Daftar jenis pakan" rows={rows}
@@ -134,9 +134,9 @@ function ActivitySection({ data, query, role, forms, kind }: SectionProps & { ki
           triggerVariant={primary === "campuran" ? "default" : "outline"} />}
       </div>} />
     <section className="grid gap-3 sm:grid-cols-3" aria-label="Ringkasan aktivitas pakan">
-      <MetricCard label="Pakan diterima gudang" value={mass(totals.masuk)} detail="Periode terpilih" />
-      <MetricCard label="Pakan dikirim ke kandang" value={mass(totals.keluar)} detail="Periode terpilih" />
-      <MetricCard label="Hasil campuran" value={mass(totals.campuran)} detail="Periode terpilih" />
+      <MetricCard icon={ArrowDownLeft} tone="success" label="Pakan diterima gudang" value={mass(totals.masuk)} detail="Periode terpilih" />
+      <MetricCard icon={ArrowUpRight} tone="info" label="Pakan dikirim ke kandang" value={mass(totals.keluar)} detail="Periode terpilih" />
+      <MetricCard icon={Shuffle} tone="info" label="Hasil campuran" value={mass(totals.campuran)} detail="Periode terpilih" />
     </section>
     <LedgerTable path={path} tab={activityPage.value} label="Riwayat aktivitas pakan" query={query} rows={rows}
       columns={[col("date", "Tanggal", "date"), col("activity", "Aktivitas"), col("product", "Pakan", "wrap"), col("weight", "Berat", "number"), col("detail", "Rincian", "wrap"), ...(role === "abk" ? [] : [col("cost", "Biaya", "number")]), col("status", "Status")]}
@@ -175,11 +175,11 @@ function StockSection({ data, query, role, forms, view }: SectionProps & { view:
     <ModuleHeader title={stockPage.label} description="Lihat posisi gudang dan kandang. Timbang sisa pakan di akhir hari agar pemakaian bisa dihitung." icon={Boxes}
       action={action} />
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan stok pakan">
-      <MetricCard label="Stok gudang" value={data.products.length ? mass(warehouse) : "Belum ada jenis pakan"} detail={summary} />
-      <MetricCard label="Sisa terukur di kandang" value={daily.length && measured.length === daily.length
+      <MetricCard icon={Warehouse} label="Stok gudang" value={data.products.length ? mass(warehouse) : "Belum ada jenis pakan"} detail={summary} />
+      <MetricCard icon={House} label="Sisa terukur di kandang" value={daily.length && measured.length === daily.length
         ? mass(barnBalances.reduce((sum, row) => sum + row.grams, 0)) : "Data belum lengkap"} detail={summary} />
-      <MetricCard label="Pengukuran sisa harian" value={daily.length ? `${measured.length} dari ${daily.length}` : "Belum ada pencatatan"} detail={summary} />
-      <MetricCard label="Pakan dikonsumsi" value={consumed === null ? "Data belum lengkap" : mass(consumed)} detail={summary} />
+      <MetricCard icon={CalendarCheck} label="Pengukuran sisa harian" value={daily.length ? `${measured.length} dari ${daily.length}` : "Belum ada pencatatan"} detail={summary} />
+      <MetricCard icon={Scale} label="Pakan dikonsumsi" value={consumed === null ? "Data belum lengkap" : mass(consumed)} detail={summary} />
     </section>
     <section className="min-w-0 space-y-3" aria-label={table.label}>
       <div className="flex flex-wrap items-center justify-between gap-2">

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ChartNoAxesCombined, Download } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Bird, Boxes, ChartNoAxesCombined, Download, Scale, Wallet } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -16,6 +16,10 @@ import { reportData, reportFilters } from "@/server/services/reports";
 
 export const metadata: Metadata = { title: "Laporan" };
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+const metricIcons: Readonly<Record<string, typeof Bird>> = {
+  "Ternak akhir periode": Bird, "Berat panen": Scale, "Konsumsi pakan": Boxes,
+  "Saldo sebelum periode": Wallet, "Saldo akhir kas": Wallet, Pemasukan: ArrowDownLeft, Pengeluaran: ArrowUpRight,
+};
 const formatter = new Intl.DateTimeFormat("id-ID", { timeZone: businessTimeZone, dateStyle: "medium", timeStyle: "short" });
 
 export default function Page(props: Props) {
@@ -47,7 +51,7 @@ async function ReportsContent({ searchParams }: Props) {
   const download = `/api/laporan/pdf?${query}`;
   return <>
     <ModuleHeader title="Laporan" description="Tinjau ringkasan historis dan unduh rincian dengan cakupan yang sama." icon={ChartNoAxesCombined}
-      action={<Link href={download} prefetch={false} className={buttonVariants({ size: "lg" })}><Download aria-hidden="true" /> Unduh PDF</Link>} />
+      action={<Link href={download} prefetch={false} className={buttonVariants({ variant: "outline", size: "lg", className: "min-h-10" })}><Download aria-hidden="true" /> Unduh PDF</Link>} />
     <Card><CardContent>
       <ReportFilters key={query.toString()} selected={{ ...selected, jenis: report.family }} options={options} from={report.from} to={report.to} />
     </CardContent></Card>
@@ -56,7 +60,7 @@ async function ReportsContent({ searchParams }: Props) {
       <p className="text-sm text-muted-foreground">{formatDate(report.from)} – {formatDate(report.to)} · Dibuat {formatter.format(report.generatedAt)} WIB</p>
     </section>
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Ringkasan laporan">
-      {report.metrics.map(({ label, value, detail }) => <MetricCard key={label} label={label} value={value} detail={detail} />)}
+      {report.metrics.map(({ label, value, detail }) => <MetricCard key={label} icon={metricIcons[label] ?? ChartNoAxesCombined} label={label} value={value} detail={detail} />)}
     </section>
     {report.sections.map((section) => <ReportTable key={`${query}:${section.title}`} section={section} />)}
     <Card><CardContent>

@@ -1,7 +1,7 @@
 import { RowActions } from "@/components/shared/row-actions";
 import { tableColumn as col, type DataColumn } from "@/components/shared/data-table";
 import type { Metadata } from "next";
-import { Activity } from "lucide-react";
+import { Activity, Shield, Syringe, TriangleAlert } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
@@ -50,13 +50,14 @@ async function HealthContent({ searchParams }: Props) {
   const { rows, columns } = healthRows(data, tab, query.from, operator, today);
   const filterOptions = tab === "jadwal" ? Object.entries(vaccinePresentation).map(([value, { label }]) => ({ value, label })) :
     tab === "kejadian" ? Object.entries(incidentPresentation).map(([value, { label }]) => ({ value, label })) : barns;
+  const overdue = data.schedules.filter(({ status }) => status === "overdue").length;
   return <>
     <ModuleHeader title="Kesehatan & Vaksin" description="Pantau kejadian kesehatan, jadwal dan pelaksanaan vaksin, serta periode karantina." icon={Activity} action={action} />
     <section aria-label="Ringkasan kesehatan" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <MetricCard label="Kejadian aktif" value={data.incidents.filter(({ data }) => data.status !== "resolved").length} detail={formatDate(query.to)} />
-      <MetricCard label="Vaksin mendatang" value={data.schedules.filter(({ status }) => status === "upcoming" || status === "today").length} />
-      <MetricCard label="Vaksin terlambat" value={data.schedules.filter(({ status }) => status === "overdue").length} />
-      <MetricCard label="Karantina aktif" value={data.quarantine.filter(({ active }) => active).length} detail={formatDate(query.to)} />
+      <MetricCard icon={Activity} label="Kejadian aktif" value={data.incidents.filter(({ data }) => data.status !== "resolved").length} detail={formatDate(query.to)} />
+      <MetricCard icon={Syringe} tone="info" label="Vaksin mendatang" value={data.schedules.filter(({ status }) => status === "upcoming" || status === "today").length} />
+      <MetricCard icon={TriangleAlert} tone={overdue > 0 ? "danger" : "neutral"} label="Vaksin terlambat" value={overdue} />
+      <MetricCard icon={Shield} label="Karantina aktif" value={data.quarantine.filter(({ active }) => active).length} detail={formatDate(query.to)} />
     </section>
     <ModuleTabs path={path} tab={tab} tabs={tabs}><LedgerTable path={path} tab={tab}
       label={tabs.find((item) => item.value === tab)!.label} rows={rows} columns={columns} query={query} choices={filterOptions} /></ModuleTabs>

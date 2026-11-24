@@ -1,6 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import type { SemanticTone } from "@/lib/status-presentation";
 import { cn } from "@/lib/utils";
+
+export { statusPresentation, type SemanticTone, type StatusPresentation } from "@/lib/status-presentation";
 
 export const semanticStyles = {
   success: "border-success-border bg-success-bg text-success-fg",
@@ -10,14 +13,7 @@ export const semanticStyles = {
   neutral: "border-neutral-border bg-neutral-bg text-neutral-fg",
   adjustment: "border-adjustment-border bg-adjustment-bg text-adjustment-fg",
   earth: "border-earth-border bg-earth-bg text-earth-fg",
-} as const;
-
-export type SemanticTone = keyof typeof semanticStyles;
-export type StatusPresentation = { label: string; tone: SemanticTone };
-
-export function statusPresentation(mapping: Readonly<Record<string, StatusPresentation>>, value: string): StatusPresentation {
-  return Object.hasOwn(mapping, value) ? mapping[value] : { tone: "neutral", label: "Status tidak diketahui" };
-}
+} as const satisfies Record<SemanticTone, string>;
 
 export function StatusBadge({ label, tone = "neutral", icon: Icon }: {
   label: string;

@@ -190,9 +190,6 @@
     @apply font-sans;
   }
 }
-.module-header-glow {
-  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 64%);
-}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

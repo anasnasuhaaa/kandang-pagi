@@ -1,5 +1,6 @@
 import { RowActions } from "@/components/shared/row-actions";
 import { tableColumn as col } from "@/components/shared/data-table";
+import { History } from "lucide-react";
 import { headers } from "next/headers";
 import { LedgerTable, ledgerBadge, ledgerCell } from "@/components/inventory/ledger-table";
 import { MetricCard } from "@/components/shared/module";
@@ -55,7 +56,7 @@ export async function CorrectionTable({ path, tab, query, administrator, scope, 
   });
   return <section className="space-y-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <MetricCard label="Koreksi menunggu" value={requests.filter(({ request }) => request.status === "pending").length} />
+      <MetricCard icon={History} label="Koreksi menunggu" value={requests.filter(({ request }) => request.status === "pending").length} />
       {choices.length > 0 && <CorrectionForm choices={choices} direct={false} />}
     </div>
     <LedgerTable path={path} tab={tab} label="Permintaan koreksi" rows={rows} query={query} scope={scope} preserve={preserve}

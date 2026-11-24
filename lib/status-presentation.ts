@@ -1,9 +1,15 @@
-import type { StatusPresentation } from "@/components/shared/status-badge";
 import type { user } from "@/db/schema/auth";
 import type { correctionStatus } from "@/db/schema/control";
 import type { cashDirection, eggCategory, healthStatus, populationKind } from "@/db/schema/farm";
 import type { vaccinationStatus } from "@/lib/domain/health-input";
 import { movementLabels } from "@/lib/domain/population-input";
+
+export type SemanticTone = "success" | "warning" | "danger" | "info" | "neutral" | "adjustment" | "earth";
+export type StatusPresentation = { label: string; tone: SemanticTone };
+
+export function statusPresentation(mapping: Readonly<Record<string, StatusPresentation>>, value: string): StatusPresentation {
+  return Object.hasOwn(mapping, value) ? mapping[value] : { tone: "neutral", label: "Status tidak diketahui" };
+}
 
 export const accountPresentation = {
   pending: { label: "Menunggu aktivasi", tone: "warning" },

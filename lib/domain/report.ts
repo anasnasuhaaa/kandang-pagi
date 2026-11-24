@@ -1,3 +1,4 @@
+import type { StatusPresentation } from "../status-presentation";
 import { z } from "zod";
 import type { DataColumn, SortValue } from "./table-sort";
 import { businessDateSchema, uuidSchema } from "../validation";
@@ -33,7 +34,7 @@ export type ReportSection = {
   columns: string[];
   rows: string[][];
   tableColumns: DataColumn[];
-  rowMeta: { id: string; values: ReportSortValue[] }[];
+  rowMeta: { id: string; values: ReportSortValue[]; badges?: (StatusPresentation | null)[] }[];
 };
 
 type ReportSortValue = string | number | null | { bigint: string } | { unit: string; amount: number | string };
@@ -53,10 +54,14 @@ export function rawReportSortValue(value: ReportSortValue): SortValue {
   return { unit: value.unit, amount: typeof value.amount === "string" ? BigInt(value.amount) : value.amount };
 }
 
-type ReportCell = string | { value: SortValue; text: string };
+type ReportCell = string | { value: SortValue; text: string; badge?: StatusPresentation };
 
 export function reportCell(value: SortValue, text: string): ReportCell {
   return { value, text };
+}
+
+export function reportBadge(badge: StatusPresentation): ReportCell {
+  return { text: badge.label, value: badge.label, badge };
 }
 
 export function reportSection(title: string, tableColumns: DataColumn[], rows: { id: string; cells: ReportCell[] }[]): ReportSection {
@@ -64,7 +69,11 @@ export function reportSection(title: string, tableColumns: DataColumn[], rows: {
     title, tableColumns,
     columns: tableColumns.map(({ label }) => label),
     rows: rows.map(({ cells }) => cells.map((cell) => typeof cell === "string" ? cell : cell.text)),
-    rowMeta: rows.map(({ id, cells }) => ({ id, values: cells.map((cell) => typeof cell === "string" ? cell : reportSortValue(cell.value)) })),
+    rowMeta: rows.map(({ id, cells }) => {
+      const badges = cells.map((cell) => typeof cell === "string" ? null : cell.badge ?? null);
+      return { id, values: cells.map((cell) => typeof cell === "string" ? cell : reportSortValue(cell.value)),
+        ...(badges.some(Boolean) ? { badges } : {}) };
+    }),
   };
 }
 

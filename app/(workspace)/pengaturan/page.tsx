@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Search, Settings } from "lucide-react";
+import { Search, Settings, Users } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
@@ -73,7 +73,7 @@ async function AccountsContent({ search, page, ownId, sort }: { search: string; 
   const hasActions = rows.some(({ id }) => id !== ownId);
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3"><MetricCard label={search ? "Hasil pencarian" : "Total akun"} value={total} /></div>
+      <div className="grid gap-3 sm:grid-cols-3"><MetricCard icon={Users} label={search ? "Hasil pencarian" : "Total akun"} value={total} /></div>
       <DataTable label="Akun pengguna"
         columns={hasActions ? [...accountColumns, actionColumn] : accountColumns}
         sorting={{ path, query, current: currentSort }}
@@ -94,7 +94,7 @@ async function AccountsContent({ search, page, ownId, sort }: { search: string; 
           <DataTableRow key={row.id} number={(current - 1) * pageSize + index + 1}>
             <TableCell className="max-w-64 font-medium whitespace-normal wrap-anywhere">{row.name}{row.id === ownId && <span className="block text-xs text-muted-foreground">Akun Anda</span>}</TableCell>
             <TableCell className="max-w-64 whitespace-normal wrap-anywhere">{row.email}</TableCell>
-            <TableCell>{roleLabels[row.role]}</TableCell>
+            <TableCell><StatusBadge label={roleLabels[row.role]} /></TableCell>
             <TableCell><StatusBadge {...statusPresentation(accountPresentation, row.status)} /></TableCell>
             {hasActions && <TableCell className="w-px text-right">{row.id !== ownId && <AccountControls userId={row.id} name={row.name} role={row.role} status={row.status} />}</TableCell>}
           </DataTableRow>
@@ -115,8 +115,8 @@ async function AuditContent({ page, sort }: { page: number; sort?: TableSort }) 
       empty={<EmptyState title="Belum ada riwayat akun" description="Aktivitas akun yang tercatat akan muncul di sini." />}>
       {rows.length ? rows.map((row, index) => (
         <DataTableRow key={row.id} number={(current - 1) * pageSize + index + 1}>
-          <TableCell>{localDateTime.format(row.at)}</TableCell><TableCell>{row.actorName}</TableCell>
-          <TableCell>{roleLabels[row.actorRole]}</TableCell><TableCell>{accountAuditLabels[row.action] ?? row.action}</TableCell>
+          <TableCell>{localDateTime.format(row.at)}</TableCell><TableCell className="min-w-28 max-w-56 whitespace-normal wrap-anywhere">{row.actorName}</TableCell>
+          <TableCell><StatusBadge label={roleLabels[row.actorRole]} /></TableCell><TableCell className="min-w-32 max-w-64 whitespace-normal wrap-anywhere">{accountAuditLabels[row.action] ?? row.action}</TableCell>
         </DataTableRow>
       )) : undefined}
     </DataTable>

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { Inbox, type LucideIcon } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { semanticStyles, type SemanticTone } from "@/components/shared/status-badge";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function ModuleHeader({
@@ -12,11 +14,10 @@ export function ModuleHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="relative isolate overflow-hidden rounded-2xl border border-border/80 bg-card p-5 sm:p-8">
-      <div className="module-header-glow pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
+    <header className="min-w-0 rounded-2xl border border-border/80 bg-card px-4 py-5 sm:px-6 sm:py-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 space-y-3">
-          {Icon && <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon aria-hidden="true" className="size-5" /></span>}
+        <div className="min-w-0 space-y-2">
+          {Icon && <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon aria-hidden="true" className="size-5" /></span>}
           <h1 className="break-words text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
           <p className="max-w-xl text-sm/6 text-muted-foreground">{description}</p>
         </div>
@@ -48,16 +49,21 @@ export function EmptyState({
   );
 }
 
-export function MetricCard({ label, value, detail }: { label: string; value: ReactNode; detail?: string }) {
-  return (
-    <Card className="min-w-0">
-      <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle></CardHeader>
-      <CardContent>
-        <div className="break-words text-2xl font-semibold tabular-nums">{value}</div>
-        {detail && <p className="mt-1 text-sm text-muted-foreground">{detail}</p>}
-      </CardContent>
-    </Card>
-  );
+export function MetricCard({ label, value, detail, icon: Icon, tone = "neutral" }: {
+  label: string; value: ReactNode; detail?: string; icon?: LucideIcon; tone?: SemanticTone;
+}) {
+  return <Card className="min-w-0">
+    <CardContent>
+      <div className="flex min-w-0 items-center gap-2.5">
+        {Icon && <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg border", semanticStyles[tone])}>
+          <Icon className="size-4" aria-hidden="true" />
+        </span>}
+        <p className="min-w-0 text-sm font-medium leading-snug text-muted-foreground">{label}</p>
+      </div>
+      <div className="mt-2 break-words text-xl leading-snug font-semibold tracking-tight tabular-nums sm:text-2xl">{value}</div>
+      {detail && <p className="mt-1 text-xs/5 text-muted-foreground">{detail}</p>}
+    </CardContent>
+  </Card>;
 }
 
 export function ModuleSkeleton() {

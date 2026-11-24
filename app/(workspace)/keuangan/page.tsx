@@ -1,7 +1,7 @@
 import { RowActions, type RowAction } from "@/components/shared/row-actions";
 import { tableColumn as col } from "@/components/shared/data-table";
 import type { Metadata } from "next";
-import { ArrowDownLeft, ArrowUpRight, History, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, History, Wallet } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
@@ -82,10 +82,10 @@ async function FinanceContent({ searchParams }: Props) {
   return <>
     <ModuleHeader title="Keuangan" description="Tinjau saldo kas, pemasukan, pengeluaran dan sumber transaksinya." icon={Wallet} action={action} />
     <section aria-label="Ringkasan kas" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <MetricCard label="Saldo kas" value={data.count ? formatIDR(data.balance) : "Belum ada catatan"} detail={formatDate(query.to)} />
-      <MetricCard label="Pemasukan" value={formatIDR(data.income)} detail="Periode terpilih" />
-      <MetricCard label="Pengeluaran" value={formatIDR(data.expense)} detail="Periode terpilih" />
-      <MetricCard label="Arus kas bersih" value={formatIDR(data.net)} detail="Pemasukan dikurangi pengeluaran" />
+      <MetricCard icon={Wallet} label="Saldo kas" value={data.count ? formatIDR(data.balance) : "Belum ada catatan"} detail={formatDate(query.to)} />
+      <MetricCard icon={ArrowDownLeft} tone="success" label="Pemasukan" value={formatIDR(data.income)} detail="Periode terpilih" />
+      <MetricCard icon={ArrowUpRight} tone="danger" label="Pengeluaran" value={formatIDR(data.expense)} detail="Periode terpilih" />
+      <MetricCard icon={ArrowLeftRight} label="Arus kas bersih" value={formatIDR(data.net)} detail="Pemasukan dikurangi pengeluaran" />
     </section>
     <ModuleTabs path={path} tab={tab} tabs={tabs}>
       <div className="space-y-5">

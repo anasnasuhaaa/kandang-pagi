@@ -1,9 +1,10 @@
 import { database } from "../../db";
 import { barns, flocks } from "../../db/schema";
 import { categoryLabels, sortedCategories, type Category } from "../../lib/domain/production-input";
-import { cashFilterLabels, reportNames, reportPeriod, reportQuerySchema, reportCell as cell, reportSection, selectReportRows, type ReportData, type ReportInput, type ReportSection } from "../../lib/domain/report";
+import { cashFilterLabels, reportNames, reportPeriod, reportQuerySchema, reportCell as cell, reportBadge, reportSection, selectReportRows, type ReportData, type ReportInput, type ReportSection } from "../../lib/domain/report";
 import { categories, resellerCategoryLabels, type ResellerCategory } from "../../lib/domain/reseller";
 import { tableColumn as col } from "../../lib/domain/table-sort";
+import { eggPresentation, recordStatus, statusPresentation } from "../../lib/status-presentation";
 import { formatDate, formatIDR, formatQuantity } from "../../lib/format";
 import { requireAuth } from "../auth/permissions";
 import { eggView } from "./eggs";
@@ -141,7 +142,7 @@ async function operations(headers: Headers, period: Period, input: ReportInput, 
       if (!lot || (input.kandang && lot.barnId !== input.kandang) || (input.kelompok && lot.flockId !== input.kelompok)) return [];
       const grouped = { coklat: event.grading!.brown, putih: event.grading!.white, cacat: event.grading!.defective };
       return sorted.filter((key) => grouped[key] > 0).map((key) => ({ id: `${event.id}:${key}`, cells: [
-        cell(event.day, formatDate(event.day)), cell(lot.day, formatDate(lot.day)), categoryLabels[key], cell(grouped[key], qty(grouped[key])),
+        cell(event.day, formatDate(event.day)), cell(lot.day, formatDate(lot.day)), reportBadge(eggPresentation[key]), cell(grouped[key], qty(grouped[key])),
       ] }));
     });
   sections.push(reportSection("Sortir menurut lot panen", [
@@ -151,7 +152,7 @@ async function operations(headers: Headers, period: Period, input: ReportInput, 
     const categories = ["ungraded", ...sortedCategories] as const;
     sections.push(reportSection("Persediaan telur pada akhir periode", [col("category", "Kategori"), col("pieces", "Butir", "number")],
       categories.filter((key) => !selected || selected === key).map((key) => ({
-        id: key, cells: [categoryLabels[key], cell(eggDetails.stock.balances[key], qty(eggDetails.stock.balances[key]))],
+        id: key, cells: [reportBadge(eggPresentation[key]), cell(eggDetails.stock.balances[key], qty(eggDetails.stock.balances[key]))],
       }))));
   } else {
     notes.push("Persediaan telur dikelola terpusat. Gunakan cakupan seluruh farm untuk melihat saldo kategori gudang.");
@@ -176,7 +177,7 @@ async function farmFinance(headers: Headers, period: Period, input: ReportInput,
   const data = await financeView(headers, period, db);
   const rows = data.rows.filter(({ direction }) => !input.transaksi || input.transaksi === direction).map((row) => ({ id: row.id, cells: [
     cell(row.date, formatDate(row.date)), cashFilterLabels[row.direction], row.category, sources[row.origin] ?? "Kas farm",
-    cell(row.delta, money(row.delta)), row.effective ? "Tercatat" : "Dibatalkan", cell(row.note || null, row.note || "-"),
+    cell(row.delta, money(row.delta)), reportBadge(recordStatus(Boolean(row.effective))), cell(row.note || null, row.note || "-"),
   ] }));
   return {
     criteria: [`Jenis transaksi: ${input.transaksi ? cashFilterLabels[input.transaksi] : "Semua"}`],
@@ -203,10 +204,10 @@ async function resellerReport(headers: Headers, period: Period, input: ReportInp
       stock?.piecesPerUnit ? cell({ unit: "kemasan", amount: stock.unitCount ?? 0 }, `${stock.unitCount} x ${stock.piecesPerUnit} butir`) :
         cell(null, "-");
     return { id: event.id, cells: [
-      cell(event.day, formatDate(event.day)), stock ? category(stock.category) : event.cash?.category ?? "Kas",
+      cell(event.day, formatDate(event.day)), stock ? reportBadge(stock.category === "campur" ? { label: "Campuran", tone: "info" } : statusPresentation(eggPresentation, stock.category)) : event.cash?.category ?? "Kas",
       cell(stock?.deltaPieces, stock ? qty(stock.deltaPieces) : "-"), measured,
       cell(event.cash?.deltaIdr, event.cash ? money(event.cash.deltaIdr) : "-"),
-      event.active ? "Tercatat" : "Dibatalkan", cell(event.note || null, event.note || "-"),
+      reportBadge(recordStatus(Boolean(event.active))), cell(event.note || null, event.note || "-"),
     ] };
   });
   return {
@@ -218,7 +219,7 @@ async function resellerReport(headers: Headers, period: Period, input: ReportInp
     sections: [
       reportSection("Saldo stok reseller", [col("category", "Kategori"), col("pieces", "Butir", "number")],
         categories.filter((key) => !input.kategori || key === input.kategori).map((key) => ({
-          id: key, cells: [category(key), cell(data.balances[key], qty(data.balances[key]))],
+          id: key, cells: [reportBadge(key === "campur" ? { label: "Campuran", tone: "info" } : eggPresentation[key]), cell(data.balances[key], qty(data.balances[key]))],
         }))),
       reportSection("Pergerakan stok dan kas", [
         col("date", "Tanggal", "date"), col("category", "Kategori", "wrap"), col("pieces", "Butir", "number"),

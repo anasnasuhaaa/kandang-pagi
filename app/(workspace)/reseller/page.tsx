@@ -1,7 +1,7 @@
 import { RowActions } from "@/components/shared/row-actions";
 import { tableColumn as col, type DataColumn } from "@/components/shared/data-table";
 import type { Metadata } from "next";
-import { ArrowDownLeft, ArrowUpRight, CircleDollarSign, History, PackageOpen, SlidersHorizontal, Store } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Boxes, CircleDollarSign, History, PackageOpen, SlidersHorizontal, Store, Wallet } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
@@ -61,10 +61,10 @@ async function ResellerContent({ searchParams }: Props) {
   return <>
     <ModuleHeader title="Reseller" description="Kelola stok, penjualan, satuan kemasan dan kas usaha reseller Anda." icon={Store} action={action} />
     <section aria-label="Ringkasan reseller" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <MetricCard label="Stok tersedia" value={pieces(Object.values(data.balances).reduce((sum, value) => sum + value, 0))} detail={formatDate(query.to)} />
-      <MetricCard label="Pemasukan" value={formatIDR(data.finance.income)} detail="Periode terpilih" />
-      <MetricCard label="Pengeluaran" value={formatIDR(data.finance.expense)} detail="Periode terpilih" />
-      <MetricCard label="Saldo kas" value={formatIDR(data.finance.balance)} detail={formatDate(query.to)} />
+      <MetricCard icon={Boxes} label="Stok tersedia" value={pieces(Object.values(data.balances).reduce((sum, value) => sum + value, 0))} detail={formatDate(query.to)} />
+      <MetricCard icon={ArrowDownLeft} tone="success" label="Pemasukan" value={formatIDR(data.finance.income)} detail="Periode terpilih" />
+      <MetricCard icon={ArrowUpRight} tone="danger" label="Pengeluaran" value={formatIDR(data.finance.expense)} detail="Periode terpilih" />
+      <MetricCard icon={Wallet} label="Saldo kas" value={formatIDR(data.finance.balance)} detail={formatDate(query.to)} />
     </section>
     <ModuleTabs path={path} tab={tab} tabs={tabs}>
       <div className="space-y-4">
