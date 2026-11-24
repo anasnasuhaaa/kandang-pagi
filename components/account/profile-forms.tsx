@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { changePasswordSchema, profileSchema } from "@/lib/account-validation";
 import { roleLabels, type Role, type Theme } from "@/lib/roles";
 import { changePasswordAction, saveProfileAction } from "@/server/auth/actions";
-import { ChoiceField, FormError, TextField } from "@/components/shared/form-fields";
+import { ChoiceField, FormError, PasswordField, TextField } from "@/components/shared/form-fields";
 import { useValidatedForm } from "@/components/shared/use-validated-form";
 
 const themeChoices = [
@@ -51,9 +51,9 @@ export function ProfileForms({ name, email, role, theme }: { name: string; email
         <CardHeader><CardTitle><h2>Ubah kata sandi</h2></CardTitle><CardDescription>Siapkan kata sandi saat ini. Setelah menyimpan, masuk kembali.</CardDescription></CardHeader>
         <CardContent>
           <form noValidate className="space-y-4" onSubmit={password.submit}>
-            <TextField name="current" label="Kata sandi saat ini" type="password" autoComplete="current-password" error={password.errors.current} />
-            <TextField name="password" label="Kata sandi baru" type="password" autoComplete="new-password" error={password.errors.password} />
-            <TextField name="confirmation" label="Ulangi kata sandi baru" type="password" autoComplete="new-password" error={password.errors.confirmation} />
+            <PasswordField name="current" label="Kata sandi saat ini" autoComplete="current-password" error={password.errors.current} />
+            <PasswordField name="password" label="Kata sandi baru" autoComplete="new-password" error={password.errors.password} />
+            <PasswordField name="confirmation" label="Ulangi kata sandi baru" autoComplete="new-password" error={password.errors.confirmation} />
             <FormError message={password.message} />
             <Button type="submit" className="h-10" disabled={password.pending}>Ubah kata sandi</Button>
           </form>

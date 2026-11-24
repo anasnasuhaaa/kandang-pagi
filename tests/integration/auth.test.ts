@@ -34,7 +34,7 @@ test("PostgreSQL account lifecycle and access boundaries", async (t) => {
 
   const auth = createAuth(db);
   const adminEmail = email("admin");
-  const adminPassword = password();
+  const adminPassword = password().slice(0, 8);
 
   async function login(address: string, secret: string) {
     const response = await auth.handler(new Request(new URL("/api/auth/sign-in/email", authConfig().baseURL), {
@@ -49,6 +49,7 @@ test("PostgreSQL account lifecycle and access boundaries", async (t) => {
   }
 
   await t.test("migrates all tables and creates exactly one first administrator under concurrency", async () => {
+    await assert.rejects(bootstrapAdmin(db, { email: adminEmail, name: "Administrator uji", password: adminPassword.slice(1) }), /minimal 8 karakter/);
     const outcome = await Promise.allSettled([
       bootstrapAdmin(db, { email: adminEmail, name: "Administrator uji", password: adminPassword }),
       bootstrapAdmin(db, { email: adminEmail, name: "Administrator uji", password: adminPassword }),
@@ -75,7 +76,7 @@ test("PostgreSQL account lifecycle and access boundaries", async (t) => {
   });
 
   const operatorEmail = email("abk");
-  const operatorPassword = password();
+  const operatorPassword = password().slice(0, 8);
   let operatorHeaders: Headers;
   let operatorId: string;
 
@@ -92,6 +93,7 @@ test("PostgreSQL account lifecycle and access boundaries", async (t) => {
     assert.equal(values.length, 1);
     assert.ok(values[0].identifier.length >= 43);
     assert.ok(!JSON.stringify([rows, values, audit]).includes(payload.token), "Raw token persisted");
+    await assert.rejects(completeAccountLink(new Headers(), fragment(issued.url, operatorPassword.slice(1)), db), /minimal 8 karakter/);
     await assert.rejects(completeAccountLink(new Headers(), { ...payload, purpose: "reset" }, db), /tidak valid/);
     const results = await Promise.allSettled([
       completeAccountLink(new Headers(), payload, db), completeAccountLink(new Headers(), payload, db),
@@ -113,13 +115,16 @@ test("PostgreSQL account lifecycle and access boundaries", async (t) => {
   await t.test("regenerating an account link revokes older links, expiry and reset revoke sessions", async () => {
     const first = await issueAccountLink(adminHeaders, { userId: operatorId, purpose: "reset" }, db);
     const second = await issueAccountLink(adminHeaders, { userId: operatorId, purpose: "reset" }, db);
-    latestPassword = password();
+    latestPassword = password().slice(0, 8);
     await assert.rejects(completeAccountLink(new Headers(), fragment(first.url, latestPassword), db), /tidak valid/);
     const now = Date.now();
     await db.update(accountLinks).set({ createdAt: new Date(now - 3_600_000), expiresAt: new Date(now - 1_000) })
       .where(eq(accountLinks.userId, operatorId));
     await assert.rejects(completeAccountLink(new Headers(), fragment(second.url, latestPassword), db), /kedaluwarsa/);
     const third = await issueAccountLink(adminHeaders, { userId: operatorId, purpose: "reset" }, db);
+    const shortReset = fragment(third.url, latestPassword.slice(1));
+    await assert.rejects(completeAccountLink(new Headers(), shortReset, db), /minimal 8 karakter/);
+    await assert.rejects(auth.api.resetPassword({ body: { token: shortReset.token!, newPassword: shortReset.password } }), /too short/i);
     await completeAccountLink(new Headers(), fragment(third.url, latestPassword), db);
     assert.equal(await getActor(operatorHeaders, db), null);
     assert.equal((await login(operatorEmail, operatorPassword)).status, 401);
@@ -132,7 +137,11 @@ test("PostgreSQL account lifecycle and access boundaries", async (t) => {
     const profile = await getActor(operatorHeaders, db);
     assert.equal(profile?.name, "Operator sore");
     assert.equal(profile?.theme, "dark");
-    const changed = password();
+    const changed = password().slice(0, 8);
+    await assert.rejects(changeOwnPassword(operatorHeaders, { current: latestPassword, ...newPassword(changed.slice(1)) }, db), /minimal 8 karakter/);
+    await assert.rejects(auth.api.changePassword({
+      headers: operatorHeaders, body: { currentPassword: latestPassword, newPassword: changed.slice(1) },
+    }), /too short/i);
     await assert.rejects(changeOwnPassword(operatorHeaders, { current: password(), ...newPassword(changed) }, db), /salah/);
     await changeOwnPassword(operatorHeaders, { current: latestPassword, ...newPassword(changed) }, db);
     assert.equal(await getActor(operatorHeaders, db), null);

@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import axe from "axe-core";
 import { PDFDocument } from "pdf-lib";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { connectDatabase } from "../../db";
 import { rateLimit, resellerSpaces } from "../../db/schema";
 import { businessDate } from "../../lib/format";
@@ -24,6 +24,28 @@ async function signIn(page: Page, email = adminEmail, password = adminPassword, 
   await page.getByRole("button", { name: "Masuk", exact: true }).click();
   await expect(page).toHaveURL(destination);
   await expect(page.getByRole("heading", { name: destination === "/reseller" ? "Reseller" : "Dashboard", exact: true })).toBeVisible();
+}
+
+async function checkPasswordVisibility(fields: Locator[], values: string[]) {
+  for (const [index, field] of fields.entries()) {
+    await expect(field).toHaveAttribute("type", "password");
+    await field.fill(values[index]);
+  }
+  for (const [index, field] of fields.entries()) {
+    const toggle = field.locator("..").getByRole("button", { name: "Tampilkan kata sandi" });
+    await expect(toggle).toHaveAttribute("type", "button");
+    await field.press("Tab");
+    await expect(toggle).toBeFocused();
+    await toggle.press("Enter");
+    await expect(field).toHaveAttribute("type", "text");
+    await expect(field).toHaveValue(values[index]);
+    for (const other of fields.filter((candidate) => candidate !== field)) {
+      await expect(other).toHaveAttribute("type", "password");
+    }
+    await field.locator("..").getByRole("button", { name: "Sembunyikan kata sandi" }).press("Space");
+    await expect(field).toHaveAttribute("type", "password");
+    await expect(field).toHaveValue(values[index]);
+  }
 }
 
 const modules = [
@@ -133,9 +155,9 @@ test("akun baru, aktivasi, reset, izin ABK, dan keluar", async ({ page, browser,
   const preview = await recipient.request.get(new URL(link).origin + "/akses");
   expect(preview.headers()["referrer-policy"]).toBe("no-referrer");
   await operator.goto(link);
-  const secret = randomBytes(20).toString("base64url");
-  await operator.getByLabel("Kata sandi baru", { exact: true }).fill(secret);
-  await operator.getByLabel("Ulangi kata sandi").fill(secret);
+  const secret = randomBytes(6).toString("base64url");
+  await checkPasswordVisibility([operator.getByLabel("Kata sandi baru", { exact: true }), operator.getByLabel("Ulangi kata sandi")], [secret, secret]);
+  await expect(operator.getByText("Kata sandi berhasil disimpan.")).toHaveCount(0);
   await operator.getByRole("button", { name: "Simpan kata sandi" }).click();
   await expect(operator).toHaveURL("/masuk");
   await signIn(operator, operatorEmail, secret);
@@ -155,14 +177,32 @@ test("akun baru, aktivasi, reset, izin ABK, dan keluar", async ({ page, browser,
   const resetLink = await reset.getByLabel("Tautan akses akun").inputValue();
   const resetPage = await recipient.newPage();
   await resetPage.goto(resetLink);
-  const newSecret = randomBytes(20).toString("base64url");
+  const newSecret = randomBytes(6).toString("base64url");
+  await checkPasswordVisibility([resetPage.getByLabel("Kata sandi baru", { exact: true }), resetPage.getByLabel("Ulangi kata sandi")], [newSecret.slice(1), newSecret.slice(1)]);
+  await resetPage.getByRole("button", { name: "Simpan kata sandi" }).click();
+  await expect(resetPage.getByText("Gunakan minimal 8 karakter.")).toBeVisible();
   await resetPage.getByLabel("Kata sandi baru", { exact: true }).fill(newSecret);
   await resetPage.getByLabel("Ulangi kata sandi").fill(newSecret);
   await resetPage.getByRole("button", { name: "Simpan kata sandi" }).click();
   await expect(resetPage).toHaveURL("/masuk");
   await operator.goto("/dashboard");
   await expect(operator).toHaveURL("/masuk");
-  await signIn(operator, operatorEmail, newSecret);
+  await operator.getByLabel("Email", { exact: true }).fill(operatorEmail);
+  await checkPasswordVisibility([operator.getByLabel("Kata sandi", { exact: true })], [newSecret]);
+  await expect(operator).toHaveURL("/masuk");
+  await operator.getByRole("button", { name: "Masuk", exact: true }).click();
+  await expect(operator).toHaveURL("/dashboard");
+  await operator.goto("/pengaturan");
+  const changed = randomBytes(6).toString("base64url");
+  await checkPasswordVisibility([
+    operator.getByLabel("Kata sandi saat ini", { exact: true }),
+    operator.getByLabel("Kata sandi baru", { exact: true }),
+    operator.getByLabel("Ulangi kata sandi baru", { exact: true }),
+  ], [newSecret, changed, changed]);
+  await expect(operator).toHaveURL("/pengaturan");
+  await operator.getByRole("button", { name: "Ubah kata sandi", exact: true }).click();
+  await expect(operator).toHaveURL("/masuk");
+  await signIn(operator, operatorEmail, changed);
   await operator.getByRole("button", { name: "Menu akun" }).click();
   await operator.getByRole("menuitem", { name: "Keluar" }).click();
   await expect(operator).toHaveURL("/masuk");

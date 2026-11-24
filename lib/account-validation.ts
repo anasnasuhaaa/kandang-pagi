@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { roles, themes } from "./roles";
-import { emailSchema, nameSchema, passwordSchema } from "./validation";
+import { emailSchema, nameSchema, passwordPolicy, passwordSchema } from "./validation";
 
 export const accountIdSchema = z.string().regex(/^[a-zA-Z0-9]{16,64}$/, "Akun tidak valid.");
 export const roleSchema = z.enum(roles, { error: "Pilih peran yang valid." });
@@ -8,7 +8,7 @@ export const themeSchema = z.enum(themes, { error: "Pilih tema yang valid." });
 export const purposeSchema = z.enum(["activation", "reset"], { error: "Tautan tidak valid." });
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, "Masukkan kata sandi.").max(128, "Kata sandi terlalu panjang."),
+  password: z.string().min(1, "Masukkan kata sandi.").max(passwordPolicy.maxPasswordLength, "Kata sandi terlalu panjang."),
 });
 export const newAccountSchema = z.object({ name: nameSchema, email: emailSchema, role: roleSchema });
 export const bootstrapSchema = newAccountSchema.omit({ role: true }).extend({ password: passwordSchema });

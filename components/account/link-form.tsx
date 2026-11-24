@@ -8,7 +8,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { completeLinkSchema } from "@/lib/account-validation";
 import { completeLinkAction } from "@/server/auth/actions";
-import { FormError, TextField, type FieldErrors } from "@/components/shared/form-fields";
+import { FormError, PasswordField, type FieldErrors } from "@/components/shared/form-fields";
 
 export function LinkForm() {
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -51,8 +51,8 @@ export function LinkForm() {
 
   return (
     <form onSubmit={submit} noValidate className="space-y-4">
-      <TextField name="password" label="Kata sandi baru" type="password" autoComplete="new-password" error={errors.password} />
-      <TextField name="confirmation" label="Ulangi kata sandi" type="password" autoComplete="new-password" error={errors.confirmation} />
+      <PasswordField name="password" label="Kata sandi baru" autoComplete="new-password" error={errors.password} />
+      <PasswordField name="confirmation" label="Ulangi kata sandi" autoComplete="new-password" error={errors.confirmation} />
       <FormError message={message} />
       <Button className="h-10 w-full" type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan kata sandi"}</Button>
       <Link href="/masuk" className="inline-block rounded-sm text-sm font-medium text-primary hover:underline focus-visible:outline-2">Kembali ke halaman masuk</Link>

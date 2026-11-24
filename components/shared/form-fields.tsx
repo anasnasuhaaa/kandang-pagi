@@ -1,23 +1,56 @@
 "use client";
 
-import { useId } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useId, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type FieldErrors = Partial<Record<string, string[]>>;
 
+type InputFieldProps = Omit<React.ComponentProps<typeof Input>, "id" | "name"> & {
+  name: string;
+  label: string;
+  error?: string[];
+};
+
 export function TextField({
-  name, label, error, ...input
-}: Omit<React.ComponentProps<typeof Input>, "id" | "name"> & { name: string; label: string; error?: string[] }) {
+  name, label, error, action, ...input
+}: InputFieldProps & { action?: React.ReactNode }) {
   const id = useId();
   const errorId = `${id}-error`;
+  const control = <Input id={id} name={name} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? errorId : undefined} className="h-10" {...input} />;
   return (
     <Field data-invalid={Boolean(error) || undefined}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input id={id} name={name} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? errorId : undefined} className="h-10" {...input} />
+      {action ? <div className="relative">{control}{action}</div> : control}
       {error && <FieldError id={errorId}>{error[0]}</FieldError>}
     </Field>
+  );
+}
+
+export function PasswordField(props: Pick<InputFieldProps, "name" | "label" | "error" | "autoComplete">) {
+  const [visible, setVisible] = useState(false);
+  const Icon = visible ? EyeOff : Eye;
+  return (
+    <TextField
+      {...props}
+      type={visible ? "text" : "password"}
+      className="h-10 pr-12"
+      action={
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute inset-y-0 right-0.5 my-auto"
+          aria-label={visible ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+          onClick={() => setVisible((value) => !value)}
+        >
+          <Icon aria-hidden="true" />
+        </Button>
+      }
+    />
   );
 }
 

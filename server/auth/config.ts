@@ -6,6 +6,7 @@ import { adminAc, userAc } from "better-auth/plugins/admin/access";
 import { eq } from "drizzle-orm";
 import { database, type Database, type Transaction } from "../../db";
 import * as schema from "../../db/schema/auth";
+import { passwordPolicy } from "../../lib/validation";
 
 export function authConfig() {
   const secret = process.env.BETTER_AUTH_SECRET;
@@ -54,8 +55,7 @@ export function createAuth(store: Database | Transaction, deliver?: (token: stri
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
-      minPasswordLength: 12,
-      maxPasswordLength: 128,
+      ...passwordPolicy,
       resetPasswordTokenExpiresIn: 24 * 60 * 60,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ token }) => {

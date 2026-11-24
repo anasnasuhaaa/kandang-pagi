@@ -6,8 +6,8 @@
 
 - Project: Kandang Pagi real client farm management web application.
 - Source repository: **already initialized by user**; do not recreate Git/Next.js.
-- Current stage: **07 complete**.
-- Last completed stage: **07 — Integration and Final Audit**.
+- Current stage: **08 complete**.
+- Last completed stage: **08 — Password policy and visibility**.
 - All nine core modules are implemented and verified locally.
 - Manual release instructions are in the [release runbook](../RELEASE_RUNBOOK.md).
 - Git policy: local stage commits only; **NEVER PUSH**.
@@ -23,6 +23,7 @@
 | 05 Kesehatan/Keuangan | Complete | [Report](reports/STAGE_05_REPORT.md) | `06006ba` | — |
 | 06 Reseller/Laporan | Complete | [Report](reports/STAGE_06_REPORT.md) | `7a24ceb` | — |
 | 07 Final Audit | Complete | [Report](reports/STAGE_07_REPORT.md) | Commit containing report¹ | — |
+| 08 Password policy and visibility | Complete | [Report](reports/STAGE_08_REPORT.md) | Commit containing report | — |
 
 ## Environment inventory (Codex must fill in Stage 01/02, no secret values)
 

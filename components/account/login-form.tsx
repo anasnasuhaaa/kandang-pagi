@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { loginSchema, themeSchema } from "@/lib/account-validation";
-import { FormError, TextField, type FieldErrors } from "@/components/shared/form-fields";
+import { FormError, PasswordField, TextField, type FieldErrors } from "@/components/shared/form-fields";
 
 export function LoginForm() {
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -48,7 +48,7 @@ export function LoginForm() {
   return (
     <form onSubmit={submit} noValidate className="space-y-4">
       <TextField name="email" label="Email" type="email" autoComplete="username" error={errors.email} />
-      <TextField name="password" label="Kata sandi" type="password" autoComplete="current-password" error={errors.password} />
+      <PasswordField name="password" label="Kata sandi" autoComplete="current-password" error={errors.password} />
       <FormError message={message} />
       <Button className="h-10 w-full" type="submit" disabled={pending}>{pending ? "Memeriksa…" : "Masuk"}</Button>
       <p className="text-sm/6 text-muted-foreground">Hubungi Administrator untuk mengatur ulang kata sandi.</p>
