@@ -10,7 +10,8 @@ import { DataTable } from "@/components/shared/data-table";
 import { EmptyState, MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { ModuleTabs } from "@/components/shared/module-tabs";
 import { PageLinks } from "@/components/shared/page-links";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, statusPresentation } from "@/components/shared/status-badge";
+import { accountPresentation } from "@/lib/status-presentation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -31,7 +32,6 @@ const querySchema = z.object({
   cari: z.string().trim().max(100).catch(""),
   halaman: z.coerce.number().int().min(1).max(10_000).catch(1),
 });
-const statusLabels = { pending: "Menunggu aktivasi", active: "Aktif", suspended: "Ditangguhkan" };
 const auditLabels: Readonly<Record<string, string>> = {
   bootstrap: "Membuat Administrator pertama",
   signin: "Masuk ke aplikasi",
@@ -99,7 +99,7 @@ async function AccountsContent({ search, page, ownId }: { search: string; page: 
             <TableCell className="font-medium">{row.name}</TableCell>
             <TableCell>{row.email}</TableCell>
             <TableCell>{roleLabels[row.role]}</TableCell>
-            <TableCell><Badge variant={row.status === "active" ? "secondary" : "outline"}>{statusLabels[row.status]}</Badge></TableCell>
+            <TableCell><StatusBadge {...statusPresentation(accountPresentation, row.status)} /></TableCell>
             <TableCell>{row.id === ownId ? "Akun Anda" : <AccountControls userId={row.id} name={row.name} role={row.role} status={row.status} />}</TableCell>
           </TableRow>
         )) : undefined}
