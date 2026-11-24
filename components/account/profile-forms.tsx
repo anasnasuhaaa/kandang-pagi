@@ -44,7 +44,7 @@ export function ProfileForms({ name, email, role, theme }: { name: string; email
             <TextField name="email" label="Email akun" type="email" defaultValue={email} readOnly />
             <ChoiceField key={theme} name="theme" label="Tema" value={theme} choices={themeChoices} error={profile.errors.theme} />
             <FormError message={profile.message} />
-            <Button type="submit" className="h-10" disabled={profile.pending}><Check aria-hidden="true" />{profile.pending ? "Menyimpan…" : "Simpan profil"}</Button>
+            <Button type="submit" className="min-h-11 sm:min-h-10" disabled={profile.pending}><Check aria-hidden="true" />{profile.pending ? "Menyimpan…" : "Simpan profil"}</Button>
           </form>
         </CardContent>
       </Card>
@@ -56,7 +56,7 @@ export function ProfileForms({ name, email, role, theme }: { name: string; email
             <PasswordField name="password" label="Kata sandi baru" autoComplete="new-password" error={password.errors.password} />
             <PasswordField name="confirmation" label="Ulangi kata sandi baru" autoComplete="new-password" error={password.errors.confirmation} />
             <FormError message={password.message} />
-            <Button type="submit" className="h-10" disabled={password.pending}>{password.pending ? "Menyimpan…" : "Ubah kata sandi"}</Button>
+            <Button type="submit" className="min-h-11 sm:min-h-10" disabled={password.pending}>{password.pending ? "Menyimpan…" : "Ubah kata sandi"}</Button>
           </form>
         </CardContent>
       </Card>

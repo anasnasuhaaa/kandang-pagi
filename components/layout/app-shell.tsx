@@ -29,7 +29,7 @@ function FeedNavigation({ active, close }: { active: boolean; close: () => void 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton type="button" isActive={active} aria-expanded={expanded} aria-controls={id}
-        className="h-10 gap-3 rounded-lg px-3 text-sm data-active:bg-primary/10 data-active:text-red-700 dark:data-active:text-primary"
+        className="h-11 gap-3 rounded-lg px-3 text-sm data-active:bg-primary/10 data-active:text-danger-fg md:h-10 dark:data-active:text-primary"
         onClick={() => setExpanded((value) => !value)}>
         <Boxes aria-hidden="true" />
         <span>Pakan</span>
@@ -49,7 +49,7 @@ function FeedSectionLinks({ active, close }: { active: boolean; close: () => voi
   const selected = active ? feedSection(feedTabSchema.parse(params.get("tab"))) : undefined;
   return feedSections.map(({ value, label, href }) => (
     <SidebarMenuSubItem key={value}>
-      <SidebarMenuSubButton isActive={selected === value} className="h-10 md:h-8"
+      <SidebarMenuSubButton isActive={selected === value} className="h-11 md:h-8"
         render={<Link href={href} aria-current={selected === value ? "page" : undefined} onClick={close} />}>
         <span>{label}</span>
       </SidebarMenuSubButton>
@@ -84,7 +84,7 @@ function Navigation({ user }: { user?: WorkspaceUser }) {
                     <SidebarMenuItem key={slug}>
                       <SidebarMenuButton
                         isActive={active}
-                        className="h-10 gap-3 rounded-lg px-3 text-sm data-active:bg-primary/10 data-active:text-red-700 dark:data-active:text-primary"
+                        className="h-11 gap-3 rounded-lg px-3 text-sm data-active:bg-primary/10 data-active:text-danger-fg md:h-10 dark:data-active:text-primary"
                         render={<Link href={href} aria-current={active ? "page" : undefined} onClick={() => setOpenMobile(false)} />}
                       >
                         <Icon aria-hidden="true" />
@@ -155,7 +155,7 @@ function ThemeToggle() {
   }
 
   return (
-    <Button type="button" size="icon" variant="outline" className="size-9" aria-label="Ganti tema terang atau gelap" onClick={toggle} disabled={pending}>
+    <Button type="button" size="icon" variant="outline" className="size-11 md:size-9" aria-label="Ganti tema terang atau gelap" onClick={toggle} disabled={pending}>
       <Moon aria-hidden="true" className="dark:hidden" />
       <Sun aria-hidden="true" className="hidden dark:block" />
     </Button>
@@ -174,7 +174,7 @@ export function AppShell({ children, user }: { children: React.ReactNode; user?:
       <SidebarInset className="min-w-0 bg-background">
         <header className="sticky top-0 z-10 flex h-16 min-w-0 shrink-0 items-center justify-between gap-3 border-b bg-card px-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <SidebarTrigger aria-label="Buka atau tutup navigasi" className="size-9 shrink-0 [&>.sr-only]:hidden" />
+            <SidebarTrigger aria-label="Buka atau tutup navigasi" className="size-11 shrink-0 md:size-9 [&>.sr-only]:hidden" />
             {current && (
               <Breadcrumb className="min-w-0" aria-label="Lokasi halaman">
                 <BreadcrumbList className="flex-nowrap">
@@ -187,7 +187,7 @@ export function AppShell({ children, user }: { children: React.ReactNode; user?:
           </div>
           <ThemeToggle />
         </header>
-        <div id="konten" tabIndex={-1} className="mx-auto flex w-full max-w-384 min-w-0 flex-col gap-5 px-3 py-5 outline-none sm:px-6 sm:py-7 xl:px-8">
+        <div id="konten" tabIndex={-1} className="mx-auto flex w-full max-w-384 min-w-0 flex-col gap-4 px-3 py-4 outline-none sm:gap-5 sm:px-6 sm:py-7 xl:px-8">
           {children}
         </div>
       </SidebarInset>

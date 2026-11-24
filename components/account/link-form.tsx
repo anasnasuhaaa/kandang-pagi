@@ -54,7 +54,7 @@ export function LinkForm() {
       <PasswordField name="password" label="Kata sandi baru" autoComplete="new-password" error={errors.password} />
       <PasswordField name="confirmation" label="Ulangi kata sandi" autoComplete="new-password" error={errors.confirmation} />
       <FormError message={message} />
-      <Button className="h-10 w-full" type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan kata sandi"}</Button>
+      <Button className="min-h-11 w-full" type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan kata sandi"}</Button>
       <Link href="/masuk" className="inline-block rounded-sm text-sm font-medium text-primary hover:underline focus-visible:outline-2">Kembali ke halaman masuk</Link>
     </form>
   );

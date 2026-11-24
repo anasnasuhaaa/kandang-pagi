@@ -27,6 +27,17 @@ async function signIn(page: Page, email = adminEmail, password = adminPassword, 
   await expect(page.getByRole("heading", { name: destination === "/reseller" ? "Reseller" : "Dashboard", exact: true })).toBeVisible();
 }
 
+async function openModuleTab(page: Page, label: string) {
+  const mobile = page.getByRole("combobox", { name: "Bagian modul" });
+  if (await mobile.isVisible()) {
+    await mobile.click();
+    await page.getByRole("option", { name: label, exact: true }).click();
+    await expect(mobile).toHaveText(label);
+  } else {
+    await page.getByRole("tab", { name: label, exact: true }).click();
+  }
+}
+
 async function checkPasswordVisibility(fields: Locator[], values: string[]) {
   for (const [index, field] of fields.entries()) {
     await expect(field).toHaveAttribute("type", "password");
@@ -56,7 +67,7 @@ const modules = [
   ["Laporan", "/laporan"], ["Pengaturan", "/pengaturan"],
 ];
 
-for (const width of [320, 375, 768, 1440]) {
+for (const width of [320, 360, 375, 390, 430, 768, 1024, 1280, 1440]) {
   test(`navigasi, tema, dan lebar halaman ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 840 });
     await page.emulateMedia({ colorScheme: "light" });
@@ -252,7 +263,7 @@ test("pencatatan kandang, kelompok, dan kematian dari ponsel", async ({ page }) 
   await expect(barn).toBeHidden();
   await expect(page.getByRole("cell", { name: "Kandang Uji", exact: true })).toBeVisible();
 
-  await page.getByRole("tab", { name: "Kelompok ternak" }).click();
+  await openModuleTab(page, "Kelompok ternak");
   await page.getByRole("button", { name: "Tambah kelompok" }).click();
   const flock = page.getByRole("dialog", { name: "Tambah kelompok" });
   await flock.getByLabel("Kode kelompok").fill("KLP-1");
@@ -267,7 +278,7 @@ test("pencatatan kandang, kelompok, dan kematian dari ponsel", async ({ page }) 
   await expect(flock).toBeHidden();
   await expect(page.getByText("75 ekor")).toBeVisible();
 
-  await page.getByRole("tab", { name: "Mutasi", exact: true }).click();
+  await openModuleTab(page, "Mutasi");
   await page.getByRole("button", { name: "Catat mutasi" }).click();
   const move = page.getByRole("dialog", { name: "Catat mutasi" });
   await move.getByRole("combobox", { name: "Kelompok ternak" }).click();
@@ -416,7 +427,7 @@ test("jenis pakan, pembelian, pengiriman, sisa harian, dan produksi telur pada 3
   await harvest.getByRole("button", { name: "Simpan pencatatan" }).click();
   await expect(harvest).toBeHidden();
 
-  await page.getByRole("tab", { name: "Sortir" }).click();
+  await openModuleTab(page, "Sortir");
   await page.getByRole("button", { name: "Catat sortir telur" }).click();
   const grade = page.getByRole("dialog", { name: "Catat sortir telur" });
   await choose(grade, "Lot panen belum disortir", /Kandang Produksi Uji/);
@@ -425,7 +436,7 @@ test("jenis pakan, pembelian, pengiriman, sisa harian, dan produksi telur pada 3
   await grade.getByLabel("Cacat (butir)").fill("10");
   await confirm(grade);
 
-  await page.getByRole("tab", { name: "Penjualan" }).click();
+  await openModuleTab(page, "Penjualan");
   await page.getByRole("button", { name: "Catat penjualan lunas" }).click();
   const sale = page.getByRole("dialog", { name: "Catat penjualan lunas" });
   await choose(sale, "Kategori", /Coklat/);
@@ -569,7 +580,7 @@ test("reseller mencatat kemasan, stok, penjualan, dan mengunduh laporan privat",
   await expect(nav.getByRole("link", { name: "Dashboard" })).toHaveCount(0);
   await page.keyboard.press("Escape");
 
-  await page.getByRole("tab", { name: "Satuan", exact: true }).click();
+  await openModuleTab(page, "Satuan");
   await page.getByRole("button", { name: "Tambah satuan kemasan" }).click();
   const unit = page.getByRole("dialog", { name: "Tambah satuan kemasan" });
   await unit.getByLabel("Kode satuan").fill("wadah");
@@ -583,7 +594,7 @@ test("reseller mencatat kemasan, stok, penjualan, dan mengunduh laporan privat",
     await page.getByRole("option", { name: option }).click();
   }
   async function trade(sale: boolean) {
-    await page.getByRole("tab", { name: sale ? "Penjualan" : "Stok masuk", exact: true }).click();
+    await openModuleTab(page, sale ? "Penjualan" : "Stok masuk");
     const name = sale ? "Catat penjualan reseller" : "Catat stok masuk";
     await page.getByRole("button", { name }).click();
     const dialog = page.getByRole("dialog", { name });

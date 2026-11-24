@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export function AuthFrame({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <main className="grid min-h-dvh place-content-center px-4 py-8">
-      <div className="w-full min-w-0 sm:w-[26rem]">
+    <main className="flex min-h-dvh items-center justify-center px-4 py-8">
+      <div className="w-full min-w-0 max-w-md">
         <div className="mb-4 flex items-center justify-center gap-2.5">
           <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><Egg aria-hidden="true" className="size-5" /></span>
           <span className="font-semibold">Kandang Pagi</span>

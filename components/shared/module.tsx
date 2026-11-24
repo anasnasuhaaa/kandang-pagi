@@ -68,7 +68,8 @@ export function MetricCard({ label, value, detail, icon: Icon, tone = "neutral" 
 
 export function ModuleSkeleton() {
   return (
-    <div aria-label="Memuat halaman" aria-busy="true" className="space-y-5">
+    <div role="status" aria-live="polite" className="space-y-5">
+      <span className="sr-only">Memuat halaman</span>
       <Skeleton className="h-40 w-full rounded-2xl" />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Skeleton className="h-28" />

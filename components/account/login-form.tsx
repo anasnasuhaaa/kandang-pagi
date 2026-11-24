@@ -50,7 +50,7 @@ export function LoginForm() {
       <TextField name="email" label="Email" type="email" autoComplete="username" error={errors.email} />
       <PasswordField name="password" label="Kata sandi" autoComplete="current-password" error={errors.password} />
       <FormError message={message} />
-      <Button className="h-10 w-full" type="submit" disabled={pending}>{pending ? "Memeriksa…" : "Masuk"}</Button>
+      <Button className="min-h-11 w-full" type="submit" disabled={pending}>{pending ? "Memeriksa…" : "Masuk"}</Button>
       <p className="text-sm/6 text-muted-foreground">Hubungi Administrator untuk mengatur ulang kata sandi.</p>
     </form>
   );

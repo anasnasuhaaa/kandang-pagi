@@ -77,14 +77,15 @@ async function PopulationContent({ searchParams }: Props) {
 
   return (
     <>
-      <ModuleHeader title="Populasi Ternak" description="Pantau penempatan ternak dan perubahan jumlah per tanggal operasional." icon={House} action={action} />
-      <section aria-label="Ringkasan populasi" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={Bird} label="Ternak hidup" value={date.known ? `${formatQuantity(date.hens)} ekor` : "Belum ada data"} detail={formatDate(date.day)} />
-        <MetricCard icon={Users} label="Kelompok aktif" value={date.known ? formatQuantity(date.activeFlocks) : "Belum ada data"} detail={formatDate(date.day)} />
-        <MetricCard icon={CircleMinus} label="Kematian tercatat" value={date.known ? `${formatQuantity(date.deaths)} ekor` : "Belum ada data"} detail={formatDate(date.day)} />
-        <MetricCard icon={House} label="Kandang aktif saat ini" value={formatQuantity(data.barnOptions.filter(({ active }) => active).length)} />
-      </section>
-      <ModuleTabs path={path} tab={tab} tabs={tabs}>
+      <ModuleHeader title="Populasi Ternak" description="Pantau penempatan ternak dan perubahan jumlah per tanggal operasional." icon={House} />
+      <ModuleTabs path={path} tab={tab} tabs={tabs} action={action} summary={
+        <section aria-label="Ringkasan populasi" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard icon={Bird} label="Ternak hidup" value={date.known ? `${formatQuantity(date.hens)} ekor` : "Belum ada data"} detail={formatDate(date.day)} />
+          <MetricCard icon={Users} label="Kelompok aktif" value={date.known ? formatQuantity(date.activeFlocks) : "Belum ada data"} detail={formatDate(date.day)} />
+          <MetricCard icon={CircleMinus} label="Kematian tercatat" value={date.known ? `${formatQuantity(date.deaths)} ekor` : "Belum ada data"} detail={formatDate(date.day)} />
+          <MetricCard icon={House} label="Kandang aktif saat ini" value={formatQuantity(data.barnOptions.filter(({ active }) => active).length)} />
+        </section>
+      }>
         <DataTable label={title} columns={hasActions ? [...columns, actionColumn] : columns} sorting={{ path, query, current: sort }}
           toolbar={<PopulationFilters key={String(raw.tab) + "-" + period.from + period.to + (period.barnId ?? "") + (period.flockId ?? "") + cari}
             path={path} tab={tab} from={period.from} to={period.to} search={cari} barnId={period.barnId} flockId={period.flockId} barns={barnChoices} flocks={flockChoices} today={today} sort={sort} />}

@@ -68,7 +68,7 @@ export function DateField({
           aria-labelledby={`${id}-label ${id}-value`}
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={error ? `${id}-error` : undefined}
-          render={<Button variant="outline" className="h-10 w-full min-w-0 justify-start text-left font-normal" />}
+          render={<Button variant="outline" className="min-h-11 w-full min-w-0 justify-start text-left font-normal sm:min-h-10" />}
         >
           <CalendarIcon aria-hidden="true" />
           <span id={`${id}-value`} className={value ? "truncate" : "truncate text-muted-foreground"}>

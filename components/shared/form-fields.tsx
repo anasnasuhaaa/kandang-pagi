@@ -20,7 +20,7 @@ export function TextField({
 }: InputFieldProps & { action?: React.ReactNode }) {
   const id = useId();
   const errorId = `${id}-error`;
-  const control = <Input id={id} name={name} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? errorId : undefined} className="h-10" {...input} />;
+  const control = <Input id={id} name={name} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? errorId : undefined} className="min-h-11 min-w-0 text-base sm:min-h-10 sm:text-sm" {...input} />;
   return (
     <Field data-invalid={Boolean(error) || undefined}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
@@ -37,13 +37,13 @@ export function PasswordField(props: Pick<InputFieldProps, "name" | "label" | "e
     <TextField
       {...props}
       type={visible ? "text" : "password"}
-      className="h-10 pr-12"
+      className="min-h-11 pr-12 text-base sm:min-h-10 sm:text-sm"
       action={
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="absolute inset-y-0 right-0.5 my-auto"
+          className="absolute inset-y-0 right-0.5 my-auto size-10 sm:size-8"
           aria-label={visible ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
           onClick={() => setVisible((value) => !value)}
         >
@@ -73,7 +73,7 @@ export function ChoiceField({
     <Field data-invalid={Boolean(error) || undefined}>
       <FieldLabel id={id}>{label}</FieldLabel>
       <Select name={name} items={choices} defaultValue={value} onValueChange={onValueChange}>
-        <SelectTrigger aria-labelledby={id} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? `${id}-error` : undefined} className="h-10 w-full">
+        <SelectTrigger aria-labelledby={id} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? `${id}-error` : undefined} className="min-h-11 w-full min-w-0 sm:min-h-10">
           <SelectValue placeholder="Pilih salah satu" />
         </SelectTrigger>
         <SelectContent alignItemWithTrigger={false}>

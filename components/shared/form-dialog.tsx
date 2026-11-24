@@ -24,14 +24,14 @@ export function FormDialog({
 }) {
   const isMobile = useIsMobile();
   const rowAction = useRowAction();
-  const trigger = <Button variant={triggerVariant} className="min-h-10 max-w-full whitespace-normal" />;
+  const trigger = <Button variant={triggerVariant} className="min-h-11 max-w-full whitespace-normal sm:min-h-10" />;
   const triggerContent = <>{triggerVariant !== "outline" && <Plus aria-hidden="true" />}{title}</>;
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         {!rowAction && <SheetTrigger render={trigger}>{triggerContent}</SheetTrigger>}
-        <SheetContent side="bottom" finalFocus={rowAction?.trigger} className="h-dvh max-h-dvh overflow-y-auto">
-          <SheetHeader><SheetTitle>{title}</SheetTitle><SheetDescription>{description}</SheetDescription></SheetHeader>
+        <SheetContent side="bottom" finalFocus={rowAction?.trigger} className="max-h-dvh overflow-y-auto overscroll-contain data-[side=bottom]:h-dvh">
+          <SheetHeader className="pr-16"><SheetTitle>{title}</SheetTitle><SheetDescription>{description}</SheetDescription></SheetHeader>
           <div className="px-4 pb-6">{children}</div>
         </SheetContent>
       </Sheet>
@@ -41,7 +41,7 @@ export function FormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {!rowAction && <DialogTrigger render={trigger}>{triggerContent}</DialogTrigger>}
       <DialogContent finalFocus={rowAction?.trigger} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
+        <DialogHeader className="pr-10"><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
         {children}
       </DialogContent>
     </Dialog>

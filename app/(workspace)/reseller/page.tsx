@@ -59,14 +59,15 @@ async function ResellerContent({ searchParams }: Props) {
     tab === "satuan" ? [{ value: "active", label: "Aktif" }, { value: "inactive", label: "Nonaktif" }, { value: "past", label: "Versi lama" }] :
     categories.map((value) => ({ value, label: category(value) }));
   return <>
-    <ModuleHeader title="Reseller" description="Kelola stok, penjualan, satuan kemasan dan kas usaha reseller Anda." icon={Store} action={action} />
-    <section aria-label="Ringkasan reseller" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <MetricCard icon={Boxes} label="Stok tersedia" value={pieces(Object.values(data.balances).reduce((sum, value) => sum + value, 0))} detail={formatDate(query.to)} />
-      <MetricCard icon={ArrowDownLeft} tone="success" label="Pemasukan" value={formatIDR(data.finance.income)} detail="Periode terpilih" />
-      <MetricCard icon={ArrowUpRight} tone="danger" label="Pengeluaran" value={formatIDR(data.finance.expense)} detail="Periode terpilih" />
-      <MetricCard icon={Wallet} label="Saldo kas" value={formatIDR(data.finance.balance)} detail={formatDate(query.to)} />
-    </section>
-    <ModuleTabs path={path} tab={tab} tabs={tabs}>
+    <ModuleHeader title="Reseller" description="Kelola stok, penjualan, satuan kemasan dan kas usaha reseller Anda." icon={Store} />
+    <ModuleTabs path={path} tab={tab} tabs={tabs} action={action} summary={
+      <section aria-label="Ringkasan reseller" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard icon={Boxes} label="Stok tersedia" value={pieces(Object.values(data.balances).reduce((sum, value) => sum + value, 0))} detail={formatDate(query.to)} />
+        <MetricCard icon={ArrowDownLeft} tone="success" label="Pemasukan" value={formatIDR(data.finance.income)} detail="Periode terpilih" />
+        <MetricCard icon={ArrowUpRight} tone="danger" label="Pengeluaran" value={formatIDR(data.finance.expense)} detail="Periode terpilih" />
+        <MetricCard icon={Wallet} label="Saldo kas" value={formatIDR(data.finance.balance)} detail={formatDate(query.to)} />
+      </section>
+    }>
       <div className="space-y-4">
         {tab === "stok" && <LedgerTable path={path} tab={tab} label="Saldo stok per kategori" query={{ ...query, page: 1, sort: ledgerQuery(raw, "saldo").sort }} scope="saldo"
           preserve={preserveLedgerParams(raw)} showFilters={false}

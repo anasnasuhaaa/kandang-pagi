@@ -76,14 +76,15 @@ async function EggContent({ searchParams }: Props) {
     categories.map((value) => ({ value, label: categoryLabels[value] }));
 
   return <>
-    <ModuleHeader title="Produksi Telur" description="Catat panen aktual, sortir per lot, stok kategori dan penjualan lunas." icon={Egg} action={action} />
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan produksi telur">
-      <MetricCard icon={Egg} label="Panen tercatat" value={inPeriod.length ? pieces(inPeriod.reduce((sum, row) => sum + row.pieces, 0)) : "Data belum lengkap"} detail="Seluruh telur termasuk Cacat" />
-      <MetricCard icon={Scale} label="Berat panen terukur" value={measured ? `${formatQuantity(inPeriod.reduce((sum, row) => sum + (row.grams ?? 0), 0) / 1000)} kg` : "Data belum lengkap"} detail="Dalam periode terpilih" />
-      <MetricCard icon={ListFilter} label="Belum Disortir" value={pieces(data.stock.balances.ungraded)} detail={formatDate(query.to)} />
-      <MetricCard icon={Boxes} label="Stok sudah disortir" value={pieces(sortedCategories.reduce((sum, category) => sum + data.stock.balances[category], 0))} detail={sortedCategories.map((category) => `${categoryLabels[category]} ${formatQuantity(data.stock.balances[category])}`).join(" · ")} />
-    </section>
-    <ModuleTabs path={path} tab={tab} tabs={tabs}>
+    <ModuleHeader title="Produksi Telur" description="Catat panen aktual, sortir per lot, stok kategori dan penjualan lunas." icon={Egg} />
+    <ModuleTabs path={path} tab={tab} tabs={tabs} action={action} summary={
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan produksi telur">
+        <MetricCard icon={Egg} label="Panen tercatat" value={inPeriod.length ? pieces(inPeriod.reduce((sum, row) => sum + row.pieces, 0)) : "Data belum lengkap"} detail="Seluruh telur termasuk Cacat" />
+        <MetricCard icon={Scale} label="Berat panen terukur" value={measured ? `${formatQuantity(inPeriod.reduce((sum, row) => sum + (row.grams ?? 0), 0) / 1000)} kg` : "Data belum lengkap"} detail="Dalam periode terpilih" />
+        <MetricCard icon={ListFilter} label="Belum Disortir" value={pieces(data.stock.balances.ungraded)} detail={formatDate(query.to)} />
+        <MetricCard icon={Boxes} label="Stok sudah disortir" value={pieces(sortedCategories.reduce((sum, category) => sum + data.stock.balances[category], 0))} detail={sortedCategories.map((category) => `${categoryLabels[category]} ${formatQuantity(data.stock.balances[category])}`).join(" · ")} />
+      </section>
+    }>
       <LedgerTable path={path} tab={tab} label={title} rows={rows} columns={columns} query={query} choices={selected} />
     </ModuleTabs>
   </>;
