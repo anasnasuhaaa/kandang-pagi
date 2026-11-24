@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { Egg, Moon, Sun, UserRound } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useId, useState } from "react";
+import { Boxes, ChevronDown, Egg, Moon, Sun, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import {
@@ -16,11 +16,46 @@ import { saveThemeAction } from "@/server/auth/actions";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
   SidebarProvider, SidebarTrigger, useSidebar,
 } from "@/components/ui/sidebar";
-import { canViewModule, modules, type Role } from "@/lib/navigation";
+import { canViewModule, feedSection, feedSections, feedTabSchema, modules, type Role } from "@/lib/navigation";
 
 export type WorkspaceUser = { name: string; role: Role; theme: Theme };
+
+function FeedNavigation({ active, close }: { active: boolean; close: () => void }) {
+  const id = useId();
+  const [expanded, setExpanded] = useState(active);
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton type="button" isActive={active} aria-expanded={expanded} aria-controls={id}
+        className="h-10 gap-3 rounded-lg px-3 text-sm data-active:bg-primary/10 data-active:text-red-700 dark:data-active:text-primary"
+        onClick={() => setExpanded((value) => !value)}>
+        <Boxes aria-hidden="true" />
+        <span>Pakan</span>
+        <ChevronDown aria-hidden="true" className={expanded ? "ml-auto rotate-180" : "ml-auto"} />
+      </SidebarMenuButton>
+      <SidebarMenuSub id={id} className={expanded ? undefined : "hidden"}>
+        <Suspense>
+          {expanded && <FeedSectionLinks active={active} close={close} />}
+        </Suspense>
+      </SidebarMenuSub>
+    </SidebarMenuItem>
+  );
+}
+
+function FeedSectionLinks({ active, close }: { active: boolean; close: () => void }) {
+  const params = useSearchParams();
+  const selected = active ? feedSection(feedTabSchema.parse(params.get("tab"))) : undefined;
+  return feedSections.map(({ value, label, href }) => (
+    <SidebarMenuSubItem key={value}>
+      <SidebarMenuSubButton isActive={selected === value} className="h-10 md:h-8"
+        render={<Link href={href} aria-current={selected === value ? "page" : undefined} onClick={close} />}>
+        <span>{label}</span>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  ));
+}
 
 function Navigation({ user }: { user?: WorkspaceUser }) {
   const pathname = usePathname();
@@ -44,6 +79,7 @@ function Navigation({ user }: { user?: WorkspaceUser }) {
                 {visible.map(({ slug, title, icon: Icon }) => {
                   const href = `/${slug}`;
                   const active = pathname === href || pathname.startsWith(`${href}/`);
+                  if (slug === "pakan") return <FeedNavigation key={active ? "pakan-active" : "pakan"} active={active} close={() => setOpenMobile(false)} />;
                   return (
                     <SidebarMenuItem key={slug}>
                       <SidebarMenuButton

@@ -1,30 +1,43 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Boxes } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
 import { FeedAdjustmentForm, FeedClosingForm, FeedIssueForm, FeedMixForm, FeedOpeningForm, FeedPurchaseForm, ProductForm } from "@/components/inventory/entry-forms";
 import { LedgerTable, type LedgerRow } from "@/components/inventory/ledger-table";
-import { MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
-import { ModuleTabs } from "@/components/shared/module-tabs";
+import { EmptyState, MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { ledgerQuery } from "@/lib/domain/ledger-query";
 import { businessDate, formatDate, formatIDR, formatQuantity } from "@/lib/format";
+import { feedSection, feedSections, feedTabSchema } from "@/lib/navigation";
+import type { Role } from "@/lib/roles";
 import { requireModule } from "@/server/auth/workspace";
 import { feedView } from "@/server/services/feed";
 
 export const metadata: Metadata = { title: "Pakan" };
 const path = "/pakan";
-const tabs = [
-  { value: "stok", label: "Stok" }, { value: "masuk", label: "Pakan masuk" }, { value: "campuran", label: "Mix pakan" },
-  { value: "keluar", label: "Pakan keluar" }, { value: "sisa", label: "Sisa harian" }, { value: "penyesuaian", label: "Penyesuaian" },
-];
-const tabSchema = z.enum(["stok", "masuk", "campuran", "keluar", "sisa", "penyesuaian"]).catch("stok");
+const [stockPage, activityPage, productsPage] = feedSections;
+const activityKinds = [
+  { value: "masuk", event: "feed_purchase", label: "Pakan Masuk" },
+  { value: "keluar", event: "feed_issue", label: "Kirim ke Kandang" },
+  { value: "campuran", event: "feed_mix", label: "Campur Pakan" },
+] as const;
+const activityKindSchema = z.enum(["masuk", "keluar", "campuran", ""]).catch("");
+const feedLabel = { ingredient: "Bahan pakan", complete: "Pakan siap pakai", mixed: "Pakan campuran" };
+const feedTypes = Object.entries(feedLabel).map(([value, label]) => ({ value, label }));
+const mass = (grams: number) => `${formatQuantity(grams / 1000)} kg`;
+
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 type View = Awaited<ReturnType<typeof feedView>>;
-type Tab = z.infer<typeof tabSchema>;
-const mass = (grams: number) => `${formatQuantity(grams / 1000)} kg`;
-const feedLabel = { ingredient: "Bahan pakan", complete: "Pakan siap pakai", mixed: "Pakan campuran" };
+type Query = ReturnType<typeof ledgerQuery>;
+type FeedFormOptions = {
+  today: string;
+  products: { value: string; label: string }[];
+  barns: { value: string; label: string }[];
+};
+type SectionProps = { data: View; query: Query; role: Role; forms: FeedFormOptions };
 
 export default function Page(props: Props) {
   return <Suspense fallback={<ModuleSkeleton />}><FeedContent {...props} /></Suspense>;
@@ -33,104 +46,221 @@ export default function Page(props: Props) {
 async function FeedContent({ searchParams }: Props) {
   const actor = await requireModule("pakan");
   const raw = await searchParams;
-  const tab = tabSchema.parse(raw.tab);
+  const tab = feedTabSchema.parse(raw.tab);
+  const section = feedSection(tab);
   const query = ledgerQuery(raw);
   const data = await feedView(await headers(), query);
-  const productChoices = data.products.filter(({ active }) => active).map((product) => ({ value: product.id, label: `${product.code} · ${product.name}` }));
-  const stockChoices = productChoices.map((choice) => ({
-    ...choice,
-    label: `${choice.label} · gudang ${mass(data.balances.find((row) => !row.barnId && row.productId === choice.value)?.grams ?? 0)}`,
+  if (section === "jenis") return <ProductSection data={data} query={query} administrator={actor.role === "administrator"} />;
+
+  const forms = {
+    today: businessDate(),
+    products: data.products.filter(({ active }) => active).map(({ id, code, name }) => ({ value: id, label: `${code} · ${name}` })),
+    barns: data.barns.filter(({ active }) => active).map(({ id, name }) => ({ value: id, label: name })),
+  };
+  const props = { data, query, role: actor.role, forms };
+  if (section === "aktivitas") {
+    const kind = activityKindSchema.parse(tab === "aktivitas" ? raw.jenis : tab);
+    return <ActivitySection {...props} kind={kind} />;
+  }
+  return <StockSection {...props} view={tab === "sisa" || tab === "penyesuaian" ? tab : "stok"} />;
+}
+
+function ProductSection({ data, query, administrator }: { data: View; query: Query; administrator: boolean }) {
+  const rows = data.products.map(({ id, code, name, kind, active }): LedgerRow => ({
+    id, filter: kind, search: `${code} ${name} ${feedLabel[kind]}`,
+    cells: [code, name, feedLabel[kind], <Badge key="status" variant={active ? "secondary" : "outline"}>{active ? "Aktif" : "Nonaktif"}</Badge>],
   }));
-  const barnChoices = data.barns.filter(({ active }) => active).map((barn) => ({ value: barn.id, label: barn.name }));
-  const outputChoices = productChoices.filter((choice) => data.products.find((item) => item.id === choice.value)?.kind === "mixed");
-  const admin = actor.role === "administrator";
-  const operator = admin || actor.role === "abk";
-  const today = businessDate();
-  const props = { today, products: productChoices, barns: barnChoices };
-  const action = tab === "stok" && admin ? <div className="flex flex-wrap gap-2"><ProductForm />{productChoices.length > 0 && <FeedOpeningForm {...props} />}</div> :
-    tab === "masuk" && admin && productChoices.length ? <FeedPurchaseForm {...props} /> :
-    tab === "campuran" && operator && productChoices.length >= 3 && outputChoices.length ? <FeedMixForm today={today} products={stockChoices} outputs={outputChoices} /> :
-    tab === "keluar" && operator && productChoices.length && barnChoices.length ? <FeedIssueForm {...props} products={stockChoices} /> :
-    tab === "sisa" && operator && productChoices.length && barnChoices.length ? <FeedClosingForm {...props} /> :
-    tab === "penyesuaian" && admin && productChoices.length ? <FeedAdjustmentForm {...props} /> : null;
-  const warehouse = data.balances.filter(({ barnId }) => barnId === null).reduce((sum, row) => sum + row.grams, 0);
-  const barns = data.balances.filter(({ barnId }) => barnId !== null);
-  const incomplete = barns.some(({ grams, closedOn }) => grams > 0 && closedOn !== query.to);
-  const closings = data.daily.filter(({ day }) => day === query.to);
-  const consumed = closings.length && closings.every((row) => row.consumed !== null) && !incomplete
-    ? closings.reduce((sum, row) => sum + (row.consumed ?? 0), 0) : null;
-  const issued = data.events.filter((event) => event.kind === "feed_issue" && !event.reversed).reduce((sum, event) =>
-    sum + event.moves.filter((row) => row.barnId).reduce((sub, row) => sub + row.grams, 0), 0);
-  const includeMoney = actor.role !== "abk";
-  const { rows, columns } = feedRows(data, tab, includeMoney, query.from, query.to);
-  const title = tabs.find((item) => item.value === tab)!.label;
   return <>
-    <ModuleHeader title="Pakan" description="Kelola stok gudang, distribusi, campuran dan hasil pengukuran sisa pakan di kandang." icon={Boxes} action={action} />
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan pakan">
-      <MetricCard label="Stok gudang" value={data.products.length ? mass(warehouse) : "Belum ada jenis pakan"} detail={formatDate(query.to)} />
-      <MetricCard label="Sisa fisik di kandang" value={incomplete || !barns.length ? "Data belum lengkap" : mass(barns.reduce((sum, row) => sum + row.grams, 0))} detail={formatDate(query.to)} />
-      <MetricCard label="Pakan dikirim" value={mass(issued)} detail="Periode terpilih" />
-      <MetricCard label="Pakan dikonsumsi" value={consumed === null ? "Data belum lengkap" : mass(consumed)} detail={formatDate(query.to)} />
+    <ModuleHeader title={productsPage.label} description="Daftar bahan pakan, pakan siap pakai, dan hasil campuran yang dapat dipilih saat pencatatan." icon={Boxes}
+      action={administrator && <ProductForm />} />
+    <section className="grid gap-3 sm:grid-cols-3" aria-label="Ringkasan jenis pakan aktif">
+      {feedTypes.map(({ value, label }) => <MetricCard key={value} label={label}
+        value={data.products.filter(({ active, kind }) => active && kind === value).length} detail="Jenis aktif" />)}
     </section>
-    <ModuleTabs path={path} tab={tab} tabs={tabs}>
-      <LedgerTable path={path} tab={tab} label={title} rows={rows} columnLabels={columns} query={query} choices={productChoices} />
-    </ModuleTabs>
+    <LedgerTable path={path} tab={productsPage.value} query={query} label="Daftar jenis pakan" rows={rows}
+      columnLabels={["Kode", "Nama pakan", "Jenis", "Status"]} choices={feedTypes} filterLabel="Jenis" showPeriod={false}
+      empty={!rows.length ? <EmptyState title="Belum ada jenis pakan" description={administrator
+        ? "Gunakan Tambah jenis pakan agar pakan bisa dipilih saat pencatatan."
+        : "Hubungi Administrator untuk mendaftarkan jenis pakan."} /> : undefined} />
   </>;
 }
 
-function feedRows(data: View, tab: Tab, includeMoney: boolean, from: string, to: string): { rows: LedgerRow[]; columns: string[] } {
-  const product = (id: string) => data.products.find((entry) => entry.id === id)?.name ?? "Pakan";
-  const barn = (id: string | null) => data.barns.find((entry) => entry.id === id)?.name ?? "Gudang";
-  if (tab === "stok") {
-    const rows = data.products.flatMap((item) => {
-      const balances = data.balances.filter((row) => row.productId === item.id);
-      if (!balances.some(({ barnId }) => barnId === null)) balances.unshift({ barnId: null, productId: item.id, grams: 0, value: undefined, closedOn: undefined, closeSequence: undefined });
-      return balances.map((row) => ({
-        id: `${item.id}:${row.barnId}`, search: `${item.code} ${item.name} ${barn(row.barnId)}`, filter: item.id,
-        cells: [`${item.code} · ${item.name}`, feedLabel[item.kind], barn(row.barnId),
-          row.barnId && row.grams && row.closedOn !== to ? "Menunggu pengukuran" : mass(row.grams),
-          ...(includeMoney ? [row.value === undefined || (row.barnId && row.grams && row.closedOn !== to) ? "—" : formatIDR(row.value)] : [])],
-      }));
+function ActivitySection({ data, query, role, forms, kind }: SectionProps & { kind: z.infer<typeof activityKindSchema> }) {
+  const administrator = role === "administrator";
+  const operator = administrator || role === "abk";
+  const stockChoices = forms.products.map((choice) => ({
+    ...choice, label: `${choice.label} · gudang ${mass(data.balances.find((row) => !row.barnId && row.productId === choice.value)?.grams ?? 0)}`,
+  }));
+  const outputChoices = forms.products.filter((choice) => data.products.some(({ id, kind }) => id === choice.value && kind === "mixed"));
+  const primary = kind || (administrator ? "masuk" : "keluar");
+  const totals = { masuk: 0, keluar: 0, campuran: 0 };
+  const rows: LedgerRow[] = [];
+  for (const event of data.events) {
+    const activity = activityKinds.find(({ event: eventKind }) => eventKind === event.kind);
+    if (!activity) continue;
+    const output = event.moves.find(({ grams }) => grams > 0);
+    const grams = event.purchase?.grams ?? event.mix?.outputGrams ?? output?.grams ?? 0;
+    if (!event.reversed) totals[activity.value] += grams;
+    if (kind && activity.value !== kind) continue;
+
+    const product = data.products.find(({ id }) => id === output?.productId)?.name ?? "—";
+    const detail = event.purchase?.supplier ?? (event.mix
+      ? `Susut ${mass(event.mix.shrinkageGrams)}`
+      : data.barns.find(({ id }) => id === output?.barnId)?.name ?? "—");
+    const total = event.purchase?.total;
+    const cost = typeof total === "bigint" && event.purchase
+      ? <><span className="block">{formatIDR(total)}</span><span className="text-xs text-muted-foreground">{formatIDR(total * BigInt(1000) / BigInt(event.purchase.grams))}/kg</span></>
+      : event.mix && typeof event.cost === "bigint" ? formatIDR(event.cost) : "—";
+    rows.push({
+      id: event.id,
+      filter: event.moves.map(({ productId }) => productId).join(","),
+      search: [formatDate(event.day), activity.label, product, detail, event.note].join(" "),
+      cells: [formatDate(event.day), activity.label, product, mass(grams),
+        <div key="detail"><span>{detail}</span>{event.note && <p className="text-sm text-muted-foreground">{event.note}</p>}</div>,
+        ...(role === "abk" ? [] : [cost]),
+        <Badge key="status" variant={event.reversed ? "outline" : "secondary"}>{event.reversed ? "Dibatalkan" : "Tercatat"}</Badge>],
     });
-    return { rows, columns: ["Pakan", "Jenis", "Lokasi", "Berat tersedia", ...(includeMoney ? ["Nilai persediaan"] : [])] };
   }
-  if (tab === "sisa") {
-    const rows = data.daily.filter(({ day }) => day >= from)
-      .sort((left, right) => right.day.localeCompare(left.day)).map((row) => {
-        const waste = data.events.filter((event) => event.kind === "feed_close" && !event.reversed && event.day === row.day)
-          .flatMap((event) => event.moves).filter((move) => move.barnId === row.barnId && move.productId === row.productId);
-        return {
-          id: `${row.day}:${row.barnId}:${row.productId}`, filter: row.productId,
-          search: `${formatDate(row.day)} ${product(row.productId)} ${barn(row.barnId)}`,
-          cells: [formatDate(row.day), product(row.productId), barn(row.barnId),
-            row.closing === null ? "Menunggu pencatatan" : mass(row.closing),
-            mass(-waste.filter((move) => move.kind === "waste").reduce((sum, move) => sum + move.grams, 0)),
-            mass(-waste.filter((move) => move.kind === "return").reduce((sum, move) => sum + move.grams, 0)),
-            row.stale ? "Perlu verifikasi ulang" : row.consumed === null ? "Data belum lengkap" : mass(row.consumed)],
-        };
-      });
-    return { rows, columns: ["Tanggal", "Pakan", "Kandang", "Sisa terukur", "Terbuang", "Kembali ke gudang", "Dikonsumsi"] };
-  }
-  const kinds = {
-    masuk: ["feed_purchase"], campuran: ["feed_mix"], keluar: ["feed_issue"], penyesuaian: ["feed_opening", "feed_adjustment"],
-  };
-  const rows = data.events.filter((event) => kinds[tab].includes(event.kind)).map((event) => {
-    const output = event.moves.find((movement) => movement.grams > 0) ?? event.moves[0];
-    const otherFields = event.purchase ? [
-      event.purchase.supplier, mass(event.purchase.grams),
-      ...(includeMoney && typeof event.purchase.total === "bigint" ? [formatIDR(event.purchase.total), formatIDR(event.purchase.total * BigInt(1000) / BigInt(event.purchase.grams))] : []),
-    ] : event.mix ? [
-      mass(event.mix.outputGrams), mass(event.mix.shrinkageGrams),
-      ...(includeMoney ? [event.cost === undefined ? "—" : formatIDR(event.cost)] : []),
-    ] : [output ? barn(output.barnId) : "—", output ? mass(output.grams) : "—"];
+
+  return <>
+    <ModuleHeader title={activityPage.label} description="Catat pembelian yang masuk gudang, pengiriman ke kandang, atau hasil campuran. Telusuri semuanya dalam satu riwayat." icon={Boxes}
+      action={operator && forms.products.length > 0 && <div className="flex shrink-0 flex-wrap gap-2 sm:max-w-64">
+        {administrator && <FeedPurchaseForm {...forms} triggerVariant={primary === "masuk" ? "default" : "outline"} />}
+        {forms.barns.length > 0 && <FeedIssueForm {...forms} products={stockChoices} triggerVariant={primary === "keluar" ? "default" : "outline"} />}
+        {forms.products.length >= 3 && outputChoices.length > 0 && <FeedMixForm today={forms.today} products={stockChoices} outputs={outputChoices}
+          triggerVariant={primary === "campuran" ? "default" : "outline"} />}
+      </div>} />
+    <section className="grid gap-3 sm:grid-cols-3" aria-label="Ringkasan aktivitas pakan">
+      <MetricCard label="Pakan diterima gudang" value={mass(totals.masuk)} detail="Periode terpilih" />
+      <MetricCard label="Pakan dikirim ke kandang" value={mass(totals.keluar)} detail="Periode terpilih" />
+      <MetricCard label="Hasil campuran" value={mass(totals.campuran)} detail="Periode terpilih" />
+    </section>
+    <LedgerTable path={path} tab={activityPage.value} label="Riwayat aktivitas pakan" query={query} rows={rows}
+      columnLabels={["Tanggal", "Aktivitas", "Pakan", "Berat", "Rincian", ...(role === "abk" ? [] : ["Biaya"]), "Status"]}
+      choices={forms.products} filterLabel="Pakan" kind={{ value: kind, choices: [...activityKinds] }}
+      empty={forms.products.length === 0 ? <EmptyState title="Belum ada jenis pakan" description={administrator
+        ? "Daftarkan jenis pakan sebelum mencatat pembelian, pengiriman, atau campuran."
+        : "Minta Administrator mendaftarkan jenis pakan terlebih dahulu."}
+        action={administrator && <Link href={productsPage.href} className={buttonVariants()}>Buka Jenis Pakan</Link>} /> : undefined} />
+  </>;
+}
+
+function StockSection({ data, query, role, forms, view }: SectionProps & { view: "stok" | "sisa" | "penyesuaian" }) {
+  const administrator = role === "administrator";
+  const operator = administrator || role === "abk";
+  const warehouse = data.balances.filter(({ barnId }) => barnId === null).reduce((sum, row) => sum + row.grams, 0);
+  const barnBalances = data.balances.filter(({ barnId }) => barnId !== null);
+  const daily = data.daily.filter(({ day }) => day === query.to);
+  const measured = daily.filter(({ closing, stale }) => closing !== null && !stale);
+  const consumed = daily.length > 0 && daily.every(({ consumed }) => consumed !== null)
+    ? daily.reduce((sum, row) => sum + (row.consumed ?? 0), 0) : null;
+  const summary = `Per ${formatDate(query.to)}`;
+  const table = view === "sisa" ? closingHistory(data, query.from) : view === "penyesuaian"
+    ? adjustmentHistory(data) : stockRows(data, query.to, role, forms);
+  const historyLinks = [
+    { tab: "stok", label: "Posisi stok" },
+    { tab: "sisa", label: "Riwayat sisa harian" },
+    { tab: "penyesuaian", label: administrator ? "Saldo awal dan penyesuaian" : "Riwayat saldo awal dan penyesuaian" },
+  ].filter(({ tab }) => tab !== view);
+  const action = view === "penyesuaian"
+    ? administrator && forms.products.length > 0 && <div className="flex shrink-0 flex-wrap gap-2 sm:max-w-64">
+      <FeedOpeningForm {...forms} /><FeedAdjustmentForm {...forms} />
+    </div>
+    : operator && forms.products.length > 0 && forms.barns.length > 0 && <FeedClosingForm {...forms} />;
+
+  return <>
+    <ModuleHeader title={stockPage.label} description="Lihat posisi gudang dan kandang. Timbang sisa pakan di akhir hari agar pemakaian bisa dihitung." icon={Boxes}
+      action={action} />
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan stok pakan">
+      <MetricCard label="Stok gudang" value={data.products.length ? mass(warehouse) : "Belum ada jenis pakan"} detail={summary} />
+      <MetricCard label="Sisa terukur di kandang" value={daily.length && measured.length === daily.length
+        ? mass(barnBalances.reduce((sum, row) => sum + row.grams, 0)) : "Data belum lengkap"} detail={summary} />
+      <MetricCard label="Pengukuran sisa harian" value={daily.length ? `${measured.length} dari ${daily.length}` : "Belum ada pencatatan"} detail={summary} />
+      <MetricCard label="Pakan dikonsumsi" value={consumed === null ? "Data belum lengkap" : mass(consumed)} detail={summary} />
+    </section>
+    <section className="min-w-0 space-y-3" aria-label={table.label}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">{table.label}</h2>
+        <nav className="flex flex-wrap gap-2" aria-label="Tampilan stok pakan">
+          {historyLinks.map(({ tab, label }) => (
+            <Link key={tab} className={buttonVariants({ variant: "outline" })} href={`${path}?${new URLSearchParams({
+              tab, mulai: query.from, akhir: query.to, ...(query.filter ? { filter: query.filter } : {}),
+            })}`}>{label}</Link>
+          ))}
+        </nav>
+      </div>
+      <LedgerTable path={path} tab={view} query={query} label={table.label} rows={table.rows}
+        columnLabels={table.columns} choices={forms.products} filterLabel="Pakan"
+        empty={data.products.length === 0 ? <EmptyState title="Belum ada jenis pakan" description={administrator
+          ? "Daftarkan jenis pakan terlebih dahulu agar stoknya bisa dicatat."
+          : "Hubungi Administrator untuk mendaftarkan jenis pakan."}
+          action={administrator && <Link href={productsPage.href} className={buttonVariants()}>Buka Jenis Pakan</Link>} /> : undefined} />
+    </section>
+  </>;
+}
+
+function stockRows(data: View, day: string, role: Role, forms: FeedFormOptions) {
+  const operator = role === "administrator" || role === "abk";
+  const includeMoney = role !== "abk";
+  const statuses = new Map(data.daily.filter((row) => row.day === day).map((row) => [`${row.barnId}:${row.productId}`, row]));
+  const rows = data.products.flatMap((item): LedgerRow[] => {
+    const balances = data.balances.filter(({ productId }) => productId === item.id);
+    if (!balances.some(({ barnId }) => barnId === null)) {
+      balances.unshift({ barnId: null, productId: item.id, grams: 0, value: undefined, closedOn: undefined, closeSequence: undefined });
+    }
+    return balances.map((row) => {
+      const barn = data.barns.find(({ id }) => id === row.barnId);
+      const reading = statuses.get(`${row.barnId}:${item.id}`);
+      const missing = reading?.closing === null;
+      const stale = reading?.stale;
+      const status = stale ? "Perlu verifikasi ulang" : missing ? "Belum diukur" : reading ? "Sudah diukur" : null;
+      const canMeasure = operator && day === forms.today && missing && item.active && barn?.active;
+      return {
+        id: `${item.id}:${row.barnId}`, search: `${item.code} ${item.name} ${barn?.name ?? "Gudang"}`, filter: item.id,
+        cells: [
+          <div key="stock-item" className="min-w-32 space-y-1">
+            <p>{item.code} · {item.name}</p>
+            <p className="text-sm text-muted-foreground">{barn?.name ?? "Gudang"}</p>
+            {status && <Badge variant={missing || stale ? "outline" : "secondary"}>{status}</Badge>}
+            {canMeasure && <div className="pt-1"><FeedClosingForm {...forms} selection={{ productId: item.id, barnId: barn.id }} /></div>}
+          </div>,
+          missing || stale ? "—" : mass(row.grams),
+          ...(includeMoney ? [row.value === undefined || missing || stale ? "—" : formatIDR(row.value)] : []),
+        ],
+      };
+    });
+  });
+  return { label: "Posisi stok", rows, columns: ["Pakan dan lokasi", "Berat tersedia", ...(includeMoney ? ["Nilai persediaan"] : [])] };
+}
+
+function closingHistory(data: View, from: string) {
+  const rows = data.daily.filter(({ day }) => day >= from).sort((left, right) => right.day.localeCompare(left.day)).map((row): LedgerRow => {
+    const movements = data.events.filter((event) => event.kind === "feed_close" && !event.reversed && event.day === row.day)
+      .flatMap((event) => event.moves).filter((move) => move.barnId === row.barnId && move.productId === row.productId);
+    const product = data.products.find(({ id }) => id === row.productId)?.name ?? "Pakan";
+    const barn = data.barns.find(({ id }) => id === row.barnId)?.name ?? "—";
     return {
-      id: event.id, filter: event.moves.map(({ productId }) => productId).join(","),
-      search: [formatDate(event.day), output && product(output.productId), event.purchase?.supplier, event.note, output && barn(output.barnId)].join(" "),
-      cells: [formatDate(event.day), output ? product(output.productId) : "—", ...otherFields,
-        event.note || "—", <Badge key={event.id} variant={event.reversed ? "outline" : "secondary"}>{event.reversed ? "Dibatalkan" : "Tercatat"}</Badge>],
+      id: `${row.day}:${row.barnId}:${row.productId}`, filter: row.productId, search: `${formatDate(row.day)} ${product} ${barn}`,
+      cells: [formatDate(row.day), product, barn, row.closing === null ? "Belum diukur" : mass(row.closing),
+        mass(-movements.filter(({ kind }) => kind === "waste").reduce((sum, move) => sum + move.grams, 0)),
+        mass(-movements.filter(({ kind }) => kind === "return").reduce((sum, move) => sum + move.grams, 0)),
+        row.stale ? "Perlu verifikasi ulang" : row.consumed === null ? "Data belum lengkap" : mass(row.consumed)],
     };
   });
-  const details = tab === "masuk" ? ["Pemasok", "Berat", ...(includeMoney ? ["Dibayar", "Rp/kg (pembulatan)"] : [])] :
-    tab === "campuran" ? ["Berat hasil", "Susut", ...(includeMoney ? ["Biaya bahan"] : [])] : ["Lokasi", "Berat"];
-  return { rows, columns: ["Tanggal", "Pakan", ...details, "Catatan", "Status"] };
+  return { label: "Riwayat sisa harian", rows, columns: ["Tanggal", "Pakan", "Kandang", "Sisa terukur", "Terbuang", "Kembali ke gudang", "Dikonsumsi"] };
+}
+
+function adjustmentHistory(data: View) {
+  const rows = data.events.filter(({ kind }) => kind === "feed_opening" || kind === "feed_adjustment").map((event): LedgerRow => {
+    const move = event.moves[0];
+    const product = data.products.find(({ id }) => id === move?.productId)?.name ?? "Pakan";
+    const location = data.barns.find(({ id }) => id === move?.barnId)?.name ?? "Gudang";
+    const type = event.kind === "feed_opening" ? "Saldo awal" : "Penyesuaian";
+    return {
+      id: event.id, filter: move?.productId, search: `${formatDate(event.day)} ${product} ${location} ${type} ${event.note}`,
+      cells: [formatDate(event.day), type, product, location, move ? mass(move.grams) : "—", event.note || "—",
+        <Badge key="status" variant={event.reversed ? "outline" : "secondary"}>{event.reversed ? "Dibatalkan" : "Tercatat"}</Badge>],
+    };
+  });
+  return { label: "Riwayat saldo awal dan penyesuaian", rows, columns: ["Tanggal", "Jenis", "Pakan", "Lokasi", "Berat", "Catatan", "Status"] };
 }

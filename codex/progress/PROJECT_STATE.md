@@ -6,8 +6,8 @@
 
 - Project: Kandang Pagi real client farm management web application.
 - Source repository: **already initialized by user**; do not recreate Git/Next.js.
-- Current stage: **09 complete**.
-- Last completed stage: **09 — Calendar date fields**.
+- Current stage: **10 complete**.
+- Last completed stage: **10 — Feed navigation and workflows**.
 - All nine core modules are implemented and verified locally.
 - Manual release instructions are in the [release runbook](../RELEASE_RUNBOOK.md).
 - Git policy: local stage commits only; **NEVER PUSH**.
@@ -25,6 +25,7 @@
 | 07 Final Audit | Complete | [Report](reports/STAGE_07_REPORT.md) | Commit containing report¹ | — |
 | 08 Password policy and visibility | Complete | [Report](reports/STAGE_08_REPORT.md) | Commit containing report | — |
 | 09 Calendar date fields | Complete | [Report](reports/STAGE_09_REPORT.md) | Commit containing report | — |
+| 10 Feed workflows | Complete | [Report](reports/STAGE_10_REPORT.md) | Commit containing report | — |
 
 ## Environment inventory (Codex must fill in Stage 01/02, no secret values)
 

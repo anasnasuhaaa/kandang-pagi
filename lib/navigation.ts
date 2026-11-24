@@ -3,6 +3,7 @@ import {
   Settings, Store, Wallet, type LucideIcon,
 } from "lucide-react";
 
+import { z } from "zod";
 import { roles, type Role } from "./roles";
 export type { Role } from "./roles";
 const farm = ["administrator", "pemilik", "abk"] as const;
@@ -30,4 +31,20 @@ export type ModuleSlug = Module["slug"];
 
 export function canViewModule(role: Role, module: Module) {
   return (module.roles as readonly Role[]).includes(role);
+}
+
+export const feedSections = [
+  { value: "stok", label: "Stok Pakan", href: "/pakan" },
+  { value: "aktivitas", label: "Aktivitas Pakan", href: "/pakan?tab=aktivitas" },
+  { value: "jenis", label: "Jenis Pakan", href: "/pakan?tab=jenis" },
+] as const;
+
+export const feedTabSchema = z.enum([
+  "stok", "aktivitas", "jenis", "sisa", "penyesuaian", "masuk", "keluar", "campuran",
+]).catch("stok");
+
+export function feedSection(tab: z.infer<typeof feedTabSchema>) {
+  if (tab === "jenis") return "jenis";
+  if (tab === "aktivitas" || tab === "masuk" || tab === "keluar" || tab === "campuran") return "aktivitas";
+  return "stok";
 }

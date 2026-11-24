@@ -56,7 +56,7 @@ export function LedgerFields({ fields, errors, update }: {
 }
 
 export function LedgerForm({
-  title, description, schema, action, fields, renderExtra, prepare, confirm, initial = {},
+  title, description, schema, action, fields, renderExtra, prepare, confirm, initial = {}, triggerVariant,
 }: {
   title: string;
   description: string;
@@ -67,6 +67,7 @@ export function LedgerForm({
   prepare?: (raw: RawForm) => unknown;
   confirm?: string;
   initial?: RawForm;
+  triggerVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -133,7 +134,7 @@ export function LedgerForm({
 
   return (
     <>
-      <FormDialog open={open} onOpenChange={changeOpen} title={title} description={description}>
+      <FormDialog open={open} onOpenChange={changeOpen} title={title} description={description} triggerVariant={triggerVariant}>
         <form noValidate onSubmit={submit} className="min-w-0 space-y-4">
           <input type="hidden" name="requestKey" value={requestKey} />
           <LedgerFields fields={fields} errors={errors} update={update} />

@@ -11,19 +11,20 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function FormDialog({
-  open, onOpenChange, title, description, children,
+  open, onOpenChange, title, description, children, triggerVariant,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
   children: ReactNode;
+  triggerVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
   const isMobile = useIsMobile();
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetTrigger render={<Button />}>{title}</SheetTrigger>
+        <SheetTrigger render={<Button variant={triggerVariant} />}>{title}</SheetTrigger>
         <SheetContent side="bottom" className="h-dvh max-h-dvh overflow-y-auto">
           <SheetHeader><SheetTitle>{title}</SheetTitle><SheetDescription>{description}</SheetDescription></SheetHeader>
           <div className="px-4 pb-6">{children}</div>
@@ -33,7 +34,7 @@ export function FormDialog({
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger render={<Button />}>{title}</DialogTrigger>
+      <DialogTrigger render={<Button variant={triggerVariant} />}>{title}</DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
         {children}

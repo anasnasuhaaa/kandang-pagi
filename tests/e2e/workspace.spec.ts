@@ -6,6 +6,7 @@ import { connectDatabase } from "../../db";
 import { rateLimit, resellerSpaces } from "../../db/schema";
 import { businessDate, formatDate, shiftBusinessDate } from "../../lib/format";
 import { createAuth } from "../../server/auth/config";
+import { buyFeed, createFeedProduct } from "../../server/services/feed";
 import { addMovement, createBarn, createFlock } from "../../server/services/population";
 import { testDatabaseUrl } from "../integration/test-database";
 const adminEmail = process.env.KANDANG_E2E_ADMIN_EMAIL!;
@@ -50,7 +51,7 @@ async function checkPasswordVisibility(fields: Locator[], values: string[]) {
 
 const modules = [
   ["Dashboard", "/dashboard"], ["Populasi Ternak", "/populasi"],
-  ["Pakan", "/pakan"], ["Produksi Telur", "/produksi-telur"],
+  ["Stok Pakan", "/pakan"], ["Produksi Telur", "/produksi-telur"],
   ["Kesehatan & Vaksin", "/kesehatan"], ["Keuangan", "/keuangan"],
   ["Laporan", "/laporan"], ["Pengaturan", "/pengaturan"],
 ];
@@ -73,10 +74,27 @@ for (const width of [320, 375, 768, 1440]) {
       await page.keyboard.press("Enter");
     }
     const nav = page.getByRole("navigation", { name: "Modul utama" });
-    await expect(nav.getByRole("link")).toHaveCount(8);
-    for (const [name, url] of modules) {
+    await expect(nav.getByRole("link")).toHaveCount(7);
+    for (const [name, url] of modules.filter(([, url]) => url !== "/pakan")) {
       await expect(nav.getByRole("link", { name, exact: true })).toHaveAttribute("href", url);
     }
+    const feedNav = nav.getByRole("button", { name: "Pakan", exact: true });
+    await expect(feedNav).toHaveAttribute("aria-expanded", "false");
+    await feedNav.press("Enter");
+    await expect(feedNav).toHaveAttribute("aria-expanded", "true");
+    await expect(nav.getByRole("link")).toHaveCount(10);
+    for (const [name, href] of [
+      ["Stok Pakan", "/pakan"], ["Aktivitas Pakan", "/pakan?tab=aktivitas"], ["Jenis Pakan", "/pakan?tab=jenis"],
+    ]) {
+      await expect(nav.getByRole("link", { name, exact: true })).toHaveAttribute("href", href);
+    }
+    await nav.getByRole("link", { name: "Aktivitas Pakan", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Aktivitas Pakan", exact: true })).toBeVisible();
+    if (width < 768) {
+      await expect(nav).toBeHidden();
+      await trigger.click();
+    }
+    await expect(nav.getByRole("link", { name: "Aktivitas Pakan", exact: true })).toHaveAttribute("aria-current", "page");
     await nav.getByRole("link", { name: "Kesehatan & Vaksin" }).click();
     await expect(page.getByRole("heading", { name: "Kesehatan & Vaksin" })).toBeVisible();
     if (width < 768) {
@@ -254,7 +272,7 @@ test("pencatatan kandang, kelompok, dan kematian dari ponsel", async ({ page }) 
   await expect(page.getByText("70 ekor", { exact: true })).toBeVisible();
 });
 
-test("pakan masuk, panen, sortir, dan penjualan lunas pada 320px", async ({ page }) => {
+test("jenis pakan, pembelian, pengiriman, sisa harian, dan produksi telur pada 320px", async ({ page }) => {
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 320, height: 840 });
   await signIn(page);
@@ -273,7 +291,7 @@ test("pakan masuk, panen, sortir, dan penjualan lunas pada 320px", async ({ page
 
   async function choose(dialog: ReturnType<Page["getByRole"]>, label: string, option: string | RegExp) {
     await dialog.getByRole("combobox", { name: label, exact: true }).click();
-    await page.getByRole("option", { name: option }).click();
+    await page.locator('[data-slot="select-content"][data-open]').getByRole("option", { name: option }).click({ timeout: 10_000 });
   }
   async function confirm(dialog: ReturnType<Page["getByRole"]>) {
     await dialog.getByRole("button", { name: "Periksa dan lanjutkan" }).click();
@@ -281,7 +299,12 @@ test("pakan masuk, panen, sortir, dan penjualan lunas pada 320px", async ({ page
     await expect(dialog).toBeHidden();
   }
 
-  await page.goto("/pakan");
+  await page.goto("/pakan?tab=masuk");
+  await expect(page.getByRole("heading", { name: "Aktivitas Pakan" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Jenis aktivitas" })).toContainText("Pakan Masuk");
+  await page.getByRole("link", { name: "Buka Jenis Pakan" }).click();
+  await expect(page.getByRole("heading", { name: "Jenis Pakan", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Dari tanggal/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Tambah jenis pakan" }).click();
   const product = page.getByRole("dialog", { name: "Tambah jenis pakan" });
   await product.getByLabel("Kode pakan").fill("P-UJI");
@@ -289,15 +312,87 @@ test("pakan masuk, panen, sortir, dan penjualan lunas pada 320px", async ({ page
   await choose(product, "Jenis", "Pakan siap pakai");
   await product.getByRole("button", { name: "Simpan pencatatan" }).click();
   await expect(product).toBeHidden();
-  await page.getByRole("tab", { name: "Pakan masuk" }).click();
-  await page.getByRole("button", { name: "Tambah pakan masuk" }).click();
-  const receipt = page.getByRole("dialog", { name: "Tambah pakan masuk" });
+  await expect(page.getByRole("table", { name: "Daftar jenis pakan" }).getByRole("cell", { name: "Pakan Uji" })).toBeVisible();
+  await page.goto("/pakan?tab=aktivitas");
+  await page.getByRole("button", { name: "Catat pembelian pakan" }).click();
+  const receipt = page.getByRole("dialog", { name: "Catat pembelian pakan" });
   await choose(receipt, "Pakan", "P-UJI · Pakan Uji");
   await receipt.getByLabel("Pemasok").fill("Pemasok Uji");
   await receipt.getByLabel("Berat (kg)").fill("120");
   await receipt.getByLabel("Total dibayar (Rp)").fill("120.000");
   await confirm(receipt);
-  await expect(page.getByRole("cell", { name: "Pemasok Uji" })).toBeVisible();
+  const activity = page.getByRole("table", { name: "Riwayat aktivitas pakan" });
+  await expect(activity.getByRole("cell", { name: "Pemasok Uji" })).toBeVisible();
+  await page.getByRole("button", { name: "Kirim ke kandang", exact: true }).click();
+  const issue = page.getByRole("dialog", { name: "Kirim ke kandang" });
+  await choose(issue, "Pakan", /P-UJI · Pakan Uji/);
+  await choose(issue, "Kandang tujuan", "Kandang Produksi Uji");
+  await issue.getByLabel("Berat (kg)").fill("20");
+  await confirm(issue);
+  await expect(activity.getByRole("cell", { name: "Kirim ke Kandang" })).toBeVisible();
+  const filters = page.getByRole("form", { name: "Filter catatan" });
+  await choose(filters, "Jenis aktivitas", "Kirim ke Kandang");
+  await choose(filters, "Pakan", "P-UJI · Pakan Uji");
+  await filters.getByRole("button", { name: "Terapkan filter" }).click();
+  await expect(page).toHaveURL(({ searchParams }) => searchParams.get("jenis") === "keluar" && Boolean(searchParams.get("filter")));
+  await expect(activity.getByRole("cell", { name: "Pakan Masuk" })).toHaveCount(0);
+  await expect(activity.getByRole("cell", { name: "Kandang Produksi Uji" })).toBeVisible();
+
+  await page.goto("/pakan");
+  const stock = page.getByRole("table", { name: "Posisi stok" });
+  const barnRow = stock.getByRole("row").filter({ hasText: "Kandang Produksi Uji" });
+  await expect(barnRow.getByText("Belum diukur")).toBeVisible();
+  const measure = barnRow.getByRole("button", { name: "Catat sisa harian" });
+  const bounds = await measure.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
+  await measure.click();
+  const close = page.getByRole("dialog", { name: "Catat sisa harian" });
+  await expect(close.getByRole("combobox", { name: "Pakan", exact: true })).toContainText("P-UJI · Pakan Uji");
+  await expect(close.getByRole("combobox", { name: "Kandang", exact: true })).toContainText("Kandang Produksi Uji");
+  await close.getByLabel("Sisa terukur (kg)").fill("4");
+  await close.getByRole("button", { name: "Simpan pencatatan" }).click();
+  await expect(close).toBeHidden();
+  await expect(barnRow.getByText("Sudah diukur")).toBeVisible();
+  await expect(measure).toHaveCount(0);
+  await expect(barnRow.getByRole("cell", { name: "4 kg", exact: true })).toBeVisible();
+  await expect(stock.getByRole("row").filter({ hasText: "Gudang" }).getByRole("cell", { name: "100 kg", exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Ringkasan stok pakan" }).getByText("16 kg", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Riwayat sisa harian", exact: true }).click();
+  await expect(page.getByRole("table", { name: "Riwayat sisa harian" }).getByRole("cell", { name: "16 kg" })).toBeVisible();
+  await page.getByRole("link", { name: "Saldo awal dan penyesuaian", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Catat saldo awal pakan" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sesuaikan stok pakan" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+
+  const mixFixture = connectDatabase(testDatabaseUrl());
+  try {
+    const ingredient = await createFeedProduct(authHeaders, {
+      requestKey: randomUUID(), code: "P-BHN-UJI", name: "Bahan Uji", kind: "ingredient",
+    }, mixFixture.db);
+    await createFeedProduct(authHeaders, {
+      requestKey: randomUUID(), code: "P-MIX-UJI", name: "Campuran Uji", kind: "mixed",
+    }, mixFixture.db);
+    await buyFeed(authHeaders, {
+      requestKey: randomUUID(), businessDate: businessDate(), productId: ingredient.id, supplier: "Pemasok bahan", grams: "30", total: "30000",
+    }, mixFixture.db);
+  } finally {
+    await mixFixture.client.end();
+  }
+  await page.goto("/pakan?tab=aktivitas&jenis=campuran");
+  await page.getByRole("button", { name: "Buat campuran pakan" }).click();
+  const mix = page.getByRole("dialog", { name: "Buat campuran pakan" });
+  await choose(mix, "Pakan hasil campuran", "P-MIX-UJI · Campuran Uji");
+  await mix.getByLabel("Berat hasil (kg)").fill("9");
+  for (const [number, name] of [[1, /P-UJI · Pakan Uji/], [2, /P-BHN-UJI · Bahan Uji/]] as const) {
+    const ingredient = mix.getByRole("group", { name: `Bahan ${number}`, exact: true });
+    await choose(ingredient, "Bahan pakan", name);
+    await ingredient.getByLabel("Berat bahan (kg)").fill("5");
+  }
+  await confirm(mix);
+  const mixRow = activity.getByRole("row").filter({ hasText: "Campuran Uji" });
+  await expect(mixRow.getByRole("cell", { name: "9 kg", exact: true })).toBeVisible();
+  await expect(mixRow.getByRole("cell", { name: "Susut 1 kg", exact: true })).toBeVisible();
 
   await page.goto("/produksi-telur");
   await page.getByRole("button", { name: "Catat panen telur" }).click();

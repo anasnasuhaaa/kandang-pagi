@@ -23,6 +23,7 @@ const notes = textField("note", "Catatan (opsional)", "");
 const reason = textField("note", "Alasan pencatatan");
 const grams = amountField("grams", "Berat (kg)", undefined, true);
 type FeedProps = { today: string; products: Choice[]; barns: Choice[] };
+type FeedActivityTrigger = { triggerVariant?: React.ComponentProps<typeof Button>["variant"] };
 type EggProps = { today: string; barns: Choice[]; flocks: Choice[]; lots: Choice[] };
 
 export function ProductForm() {
@@ -31,13 +32,13 @@ export function ProductForm() {
 }
 
 export function FeedOpeningForm({ today, products, barns }: FeedProps) {
-  return <LedgerForm title="Catat saldo awal pakan" description="Masukkan stok terukur sebelum pergerakan pertama untuk produk dan lokasi ini."
+  return <LedgerForm title="Catat saldo awal pakan" triggerVariant="outline" description="Masukkan stok terukur sebelum pergerakan pertama untuk produk dan lokasi ini."
     schema={feedOpeningSchema} action={openFeedAction} fields={[dateField(today), selectField("productId", "Pakan", products),
       selectField("barnId", "Lokasi stok", barnOrWarehouse(barns), ""), grams, amountField("value", "Nilai persediaan (Rp)", "0"), reason]} />;
 }
 
-export function FeedPurchaseForm({ today, products }: Omit<FeedProps, "barns">) {
-  return <LedgerForm title="Tambah pakan masuk" description="Catat penerimaan yang sudah dibayar penuh dan tambahkan stok gudang."
+export function FeedPurchaseForm({ today, products, triggerVariant }: Omit<FeedProps, "barns"> & FeedActivityTrigger) {
+  return <LedgerForm title="Catat pembelian pakan" triggerVariant={triggerVariant} description="Catat penerimaan yang sudah dibayar penuh dan tambahkan stok gudang."
     schema={feedPurchaseSchema} action={buyFeedAction} fields={[dateField(today), selectField("productId", "Pakan", products), textField("supplier", "Pemasok"),
       grams, amountField("total", "Total dibayar (Rp)"), notes]}
     confirm="Penerimaan menambah stok gudang dan membukukan satu pengeluaran."
@@ -49,21 +50,24 @@ export function FeedPurchaseForm({ today, products }: Omit<FeedProps, "barns">) 
     }} />;
 }
 
-export function FeedIssueForm({ today, products, barns }: FeedProps) {
-  return <LedgerForm title="Catat pakan keluar" description="Pindahkan pakan dari gudang ke kandang yang dipilih."
+export function FeedIssueForm({ today, products, barns, triggerVariant }: FeedProps & FeedActivityTrigger) {
+  return <LedgerForm title="Kirim ke kandang" triggerVariant={triggerVariant} description="Pindahkan pakan dari gudang ke kandang yang dipilih."
     schema={feedIssueSchema} action={issueFeedAction} fields={[dateField(today), selectField("productId", "Pakan", products),
       selectField("barnId", "Kandang tujuan", barns), grams, notes]} confirm="Stok gudang berkurang dan stok kandang bertambah sesuai berat yang dimasukkan." />;
 }
 
-export function FeedClosingForm({ today, products, barns }: FeedProps) {
-  return <LedgerForm title="Catat sisa harian" description="Masukkan hasil pengukuran akhir hari untuk satu jenis pakan di satu kandang."
-    schema={feedClosingSchema} action={closeFeedAction} fields={[dateField(today), selectField("productId", "Pakan", products),
-      selectField("barnId", "Kandang", barns), amountField("closing", "Sisa terukur (kg)", undefined, true),
+export function FeedClosingForm({ today, products, barns, selection }: FeedProps & {
+  selection?: { productId: string; barnId: string };
+}) {
+  return <LedgerForm title="Catat sisa harian" triggerVariant={selection ? "outline" : undefined}
+    description="Masukkan hasil pengukuran akhir hari untuk satu jenis pakan di satu kandang."
+    schema={feedClosingSchema} action={closeFeedAction} fields={[dateField(today), selectField("productId", "Pakan", products, selection?.productId),
+      selectField("barnId", "Kandang", barns, selection?.barnId), amountField("closing", "Sisa terukur (kg)", undefined, true),
       amountField("waste", "Pakan terbuang (kg)", "0", true), amountField("returned", "Dikembalikan ke gudang (kg)", "0", true), notes]} />;
 }
 
 export function FeedAdjustmentForm({ today, products, barns }: FeedProps) {
-  return <LedgerForm title="Sesuaikan stok pakan" description="Catat selisih fisik untuk lokasi dan tanggal yang dipilih."
+  return <LedgerForm title="Sesuaikan stok pakan" triggerVariant="outline" description="Catat selisih fisik untuk lokasi dan tanggal yang dipilih."
     schema={feedAdjustmentSchema} action={adjustFeedAction} fields={[dateField(today), selectField("productId", "Pakan", products),
       selectField("barnId", "Lokasi stok", barnOrWarehouse(barns), ""), selectField("direction", "Jenis penyesuaian", signChoices),
       grams, reason]} confirm="Penyesuaian mengubah saldo historis. Pencatatan diperiksa terhadap seluruh riwayat yang terkait." />;
@@ -103,8 +107,8 @@ function grouped(raw: RawForm, anchor: string, fields: string[]) {
   });
 }
 
-export function FeedMixForm({ today, products, outputs }: { today: string; products: Choice[]; outputs: Choice[] }) {
-  return <LedgerForm title="Buat campuran pakan" description="Gunakan stok gudang dan catat berat aktual hasil campuran."
+export function FeedMixForm({ today, products, outputs, triggerVariant }: Omit<FeedProps, "barns"> & FeedActivityTrigger & { outputs: Choice[] }) {
+  return <LedgerForm title="Buat campuran pakan" triggerVariant={triggerVariant} description="Gunakan stok gudang dan catat berat aktual hasil campuran."
     schema={feedMixSchema} action={mixFeedAction} fields={[dateField(today), selectField("productId", "Pakan hasil campuran", outputs),
       amountField("output", "Berat hasil (kg)", undefined, true), notes]}
     prepare={(raw) => ({ ...raw, ingredients: grouped(raw, "productId", ["productId", "grams"]) })}

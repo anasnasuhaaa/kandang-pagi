@@ -3,16 +3,20 @@ import { DataTable } from "@/components/shared/data-table";
 import { EmptyState } from "@/components/shared/module";
 import { PageLinks } from "@/components/shared/page-links";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { LedgerFilters } from "./ledger-filters";
+import { LedgerFilters, type LedgerKindFilter } from "./ledger-filters";
 
 export type LedgerRow = { id: string; cells: ReactNode[]; search: string; filter?: string };
 
 export function LedgerTable({
-  path, label, tab, rows, columnLabels, query, choices = [],
+  path, label, tab, rows, columnLabels, query, choices = [], filterLabel, kind, showPeriod = true, empty,
 }: {
   path: string; label: string; tab: string; rows: LedgerRow[]; columnLabels: string[];
   query: { from: string; to: string; search: string; page: number; filter: string };
   choices?: { value: string; label: string }[];
+  filterLabel?: string;
+  kind?: LedgerKindFilter;
+  showPeriod?: boolean;
+  empty?: ReactNode;
 }) {
   const pageSize = 12;
   const needle = query.search.toLocaleLowerCase("id-ID");
@@ -23,10 +27,14 @@ export function LedgerTable({
   const start = (current - 1) * pageSize;
   return (
     <DataTable label={label} columns={columnLabels.map((name) => ({ key: name, label: name }))}
-      toolbar={<LedgerFilters key={`${tab}:${query.from}:${query.to}:${query.search}:${query.filter}`} path={path} tab={tab} query={query} choices={choices} />}
-      empty={<EmptyState title="Belum ada catatan" description="Catatan yang sesuai dengan periode dan pencarian akan tampil di sini." />}
+      toolbar={<LedgerFilters key={`${tab}:${query.from}:${query.to}:${query.search}:${query.filter}:${kind?.value ?? ""}`}
+        path={path} tab={tab} query={query} choices={choices} filterLabel={filterLabel} kind={kind} showPeriod={showPeriod} />}
+      empty={empty ?? <EmptyState title="Belum ada catatan" description={showPeriod
+        ? "Catatan yang sesuai dengan periode dan pencarian akan tampil di sini."
+        : "Catatan yang sesuai dengan pencarian dan filter akan tampil di sini."} />}
       pagination={<PageLinks path={path} current={current} pages={pages}
-        query={{ tab, mulai: query.from, akhir: query.to, cari: query.search, filter: query.filter }} />}>
+        query={{ tab, ...(showPeriod ? { mulai: query.from, akhir: query.to } : {}),
+          cari: query.search, filter: query.filter, ...(kind?.value ? { jenis: kind.value } : {}) }} />}>
       {matching.length ? matching.slice(start, start + pageSize).map((row) => (
         <TableRow key={row.id}>
           {row.cells.map((cell, index) => (
