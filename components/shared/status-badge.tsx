@@ -29,3 +29,16 @@ export function StatusBadge({ label, tone = "neutral", icon: Icon }: {
     {label}
   </Badge>;
 }
+
+export function SemanticIndicator({ label, tone, icon: Icon }: {
+  label: string;
+  tone: SemanticTone;
+  icon: LucideIcon;
+}) {
+  return <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+    <span className={cn("grid size-6 shrink-0 place-items-center rounded-md", semanticStyles[tone])}>
+      <Icon aria-hidden="true" className="size-3.5" />
+    </span>
+    {label}
+  </span>;
+}

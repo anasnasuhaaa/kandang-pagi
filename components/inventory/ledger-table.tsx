@@ -1,6 +1,8 @@
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { actionColumn, DataCell, DataTable, DataTableRow, type DataColumn } from "@/components/shared/data-table";
 import { EmptyState } from "@/components/shared/module";
+import { StatusBadge, type StatusPresentation } from "@/components/shared/status-badge";
 import { PageLinks } from "@/components/shared/page-links";
 import { sortParams, sortTableRows, type SortValue, type TableSort } from "@/lib/domain/table-sort";
 import { LedgerFilters, type LedgerKindFilter } from "./ledger-filters";
@@ -10,6 +12,10 @@ export type LedgerRow = { id: string; cells: LedgerCell[]; search: string; filte
 
 export function ledgerCell(value: SortValue, content: ReactNode): LedgerCell {
   return { value, content };
+}
+
+export function ledgerBadge(presentation: StatusPresentation, icon?: LucideIcon): LedgerCell {
+  return ledgerCell(presentation.label, <StatusBadge {...presentation} icon={icon} />);
 }
 
 export function LedgerTable({

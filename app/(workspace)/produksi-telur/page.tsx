@@ -1,14 +1,15 @@
 import { tableColumn as col, type DataColumn } from "@/components/shared/data-table";
 import type { Metadata } from "next";
-import { Egg } from "lucide-react";
+import { ArrowDownToLine, Egg, ListFilter, ShoppingBasket, SlidersHorizontal } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
 import { EggAdjustmentForm, GradeForm, HarvestForm, SaleForm } from "@/components/inventory/entry-forms";
-import { LedgerTable, ledgerCell, type LedgerCell, type LedgerRow } from "@/components/inventory/ledger-table";
+import { LedgerTable, ledgerBadge, ledgerCell, type LedgerCell, type LedgerRow } from "@/components/inventory/ledger-table";
 import { MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { ModuleTabs } from "@/components/shared/module-tabs";
-import { Badge } from "@/components/ui/badge";
+import { SemanticIndicator, StatusBadge, statusPresentation } from "@/components/shared/status-badge";
+import { eggPresentation, recordStatus } from "@/lib/status-presentation";
 import { ledgerQuery } from "@/lib/domain/ledger-query";
 import { categoryLabels, sortedCategories, type Category } from "@/lib/domain/production-input";
 import { businessDate, formatDate, formatIDR, formatQuantity } from "@/lib/format";
@@ -27,7 +28,21 @@ type View = Awaited<ReturnType<typeof eggView>>;
 type Tab = z.infer<typeof tabSchema>;
 const pieces = (value: number) => `${formatQuantity(value)} butir`;
 const categories: Category[] = ["ungraded", ...sortedCategories];
-const kindLabels = { egg_harvest: "Panen", egg_grading: "Sortir", egg_sale: "Penjualan lunas", egg_adjustment: "Pergerakan stok" } as const;
+const eventPresentation = {
+  egg_harvest: { label: "Panen", icon: Egg, tone: "info" },
+  egg_grading: { label: "Sortir", icon: ListFilter, tone: "info" },
+  egg_sale: { label: "Penjualan lunas", icon: ShoppingBasket, tone: "success" },
+  egg_adjustment: { label: "Pergerakan stok", icon: SlidersHorizontal, tone: "adjustment" },
+} as const;
+const unknownEvent = { label: "Pergerakan telur", icon: ArrowDownToLine, tone: "neutral" } as const;
+
+function EggBreakdown({ entries }: { entries: { category: Category; pieces: number }[] }) {
+  return <ul className="space-y-1">{entries.map(({ category, pieces: count }) =>
+    <li key={category} className="flex flex-wrap items-center gap-x-2 gap-y-1 tabular-nums">
+      <StatusBadge {...statusPresentation(eggPresentation, category)} /> {pieces(count)}
+    </li>
+  )}</ul>;
+}
 
 export default function Page(props: Props) {
   return <Suspense fallback={<ModuleSkeleton />}><EggContent {...props} /></Suspense>;
@@ -79,7 +94,7 @@ function eggRows(data: View, tab: Tab, money: boolean): { columns: DataColumn[];
   const flock = (id: string | null) => id ? data.flocks.find((row) => row.id === id)?.name ?? "—" : "Panen campuran";
   if (tab === "stok") return {
     columns: [col("category", "Kategori"), col("stock", "Stok tersedia", "number")],
-    rows: categories.map((category) => ({ id: category, filter: category, search: categoryLabels[category], cells: [categoryLabels[category], ledgerCell(data.stock.balances[category], pieces(data.stock.balances[category]))] })),
+    rows: categories.map((category) => ({ id: category, filter: category, search: categoryLabels[category], cells: [ledgerBadge(statusPresentation(eggPresentation, category)), ledgerCell(data.stock.balances[category], pieces(data.stock.balances[category]))] })),
   };
   const kind = tab === "panen" ? "egg_harvest" : tab === "sortir" ? "egg_grading" : tab === "penjualan" ? "egg_sale" : null;
   const rows = data.events.filter((event) => !kind || event.kind === kind).flatMap((event): LedgerRow[] => {
@@ -88,7 +103,7 @@ function eggRows(data: View, tab: Tab, money: boolean): { columns: DataColumn[];
     const sale = event.sale;
     if ((tab === "panen" && !harvest) || (tab === "sortir" && !grade) || (tab === "penjualan" && !sale)) return [];
     const detail = event.moves.map((item) => `${categoryLabels[item.category]} ${pieces(item.deltaPieces)}`).join(" · ");
-    const fullStatus = <Badge key={event.id} variant={event.effective ? "secondary" : "outline"}>{event.effective ? "Tercatat" : "Dibatalkan"}</Badge>;
+    const fullStatus = ledgerBadge(recordStatus(Boolean(event.effective)));
     let content: LedgerCell[];
     let search: string[];
     let filter = event.moves.map(({ category }) => category).join(",");
@@ -107,15 +122,17 @@ function eggRows(data: View, tab: Tab, money: boolean): { columns: DataColumn[];
       const lines = event.lines.map((line) => `${categoryLabels[line.category]} ${pieces(line.pieces)}`).join(" · ");
       const paid = typeof sale.paid === "bigint" ? formatIDR(sale.paid) : "—";
       search = [lines, ...(money ? [sale.buyer || "—", paid] : [])];
-      content = [ledgerCell(event.lines.reduce((sum, line) => sum + line.pieces, 0), lines),
+      content = [ledgerCell(event.lines.reduce((sum, line) => sum + line.pieces, 0), <EggBreakdown entries={event.lines} />),
         ...(money ? [ledgerCell(sale.buyer || null, sale.buyer || "—"), ledgerCell(sale.paid, paid)] : [])];
     } else {
-      search = [kindLabels[event.kind as keyof typeof kindLabels] ?? "Pergerakan telur", detail || "—"];
-      content = [search[0], ledgerCell(event.moves.length ? event.moves.reduce((sum, item) => sum + item.deltaPieces, 0) : null, search[1])];
+      const movement = eventPresentation[event.kind as keyof typeof eventPresentation] ?? unknownEvent;
+      search = [movement.label, detail || "—"];
+      content = [ledgerCell(movement.label, <SemanticIndicator {...movement} tone={event.effective ? movement.tone : "neutral"} />),
+        ledgerCell(event.moves.length ? event.moves.reduce((sum, item) => sum + item.deltaPieces, 0) : null, search[1])];
     }
     return [{
       id: event.id, filter, search: [formatDate(event.day), ...search, event.note].join(" "),
-      cells: [ledgerCell(event.day, formatDate(event.day)), ...content, ledgerCell(event.note || null, event.note || "—"), ledgerCell(event.effective ? "Tercatat" : "Dibatalkan", fullStatus)],
+      cells: [ledgerCell(event.day, formatDate(event.day)), ...content, ledgerCell(event.note || null, event.note || "—"), fullStatus],
     }];
   });
   const details = tab === "panen" ? [col("barn", "Kandang", "wrap"), col("flock", "Asal panen", "wrap"), col("quantity", "Jumlah", "number"), col("weight", "Berat timbang", "number")] :
