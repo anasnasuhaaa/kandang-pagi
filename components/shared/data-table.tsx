@@ -69,7 +69,7 @@ export function DataTable({
           <TableRow>
             <TableHead scope="col" className="w-px text-right">#</TableHead>
             {columns.map((column) => (
-              <TableHead key={column.key} scope="col"
+              <TableHead key={column.key} scope="col" data-column={column.key}
                 aria-sort={sorting?.current?.column === column.key ? sorting.current.direction === "asc" ? "ascending" : "descending" : undefined}
                 className={cn(column.variant === "number" && "text-right", column.variant === "actions" && "w-px text-right")}>
                 {sorting && column.variant !== "actions" ? <SortHeader column={column} sorting={sorting} /> : column.label}

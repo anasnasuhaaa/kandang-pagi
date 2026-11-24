@@ -184,4 +184,21 @@ test("PostgreSQL account lifecycle and access boundaries", async (t) => {
     assert.equal(result.filter(({ replay }) => !replay).length, 1);
     await assert.rejects(write(2), /data berbeda/);
   });
+
+  await t.test("account and audit sorting use scoped SQL order before pagination", async () => {
+    const names = Array.from({ length: 15 }, (_, index) => `Urutan Akun ${String.fromCharCode(65 + index)}`);
+    await db.insert(user).values(names.toReversed().map((name) => ({ id: randomUUID(), name, email: email("sort") })));
+    const order = { column: "name", direction: "asc" } as const;
+    const first = await listAccounts(adminHeaders, "Urutan Akun", 1, db, order);
+    const last = await listAccounts(adminHeaders, "Urutan Akun", 999, db, order);
+    assert.equal(first.total, 15);
+    assert.equal(last.current, 2);
+    assert.deepEqual([...first.rows, ...last.rows].map(({ name }) => name), names);
+    const defaultPage = await listAccounts(adminHeaders, "Urutan Akun", 1, db);
+    const unsupported = await listAccounts(adminHeaders, "Urutan Akun", 1, db, { column: "actions", direction: "asc" });
+    assert.deepEqual(unsupported.rows, defaultPage.rows);
+    const audit = await listAccountAudit(adminHeaders, 1, db, { column: "event", direction: "asc" });
+    assert.ok(audit.total > 0);
+    assert.equal(new Set(audit.rows.map(({ id }) => id)).size, audit.rows.length);
+  });
 });

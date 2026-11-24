@@ -10,6 +10,10 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { businessDate, businessTimeZone, formatDate, jakartaStart } from "@/lib/format";
 
+const compactDate = new Intl.DateTimeFormat("id-ID", {
+  timeZone: businessTimeZone, day: "numeric", month: "short", year: "numeric",
+});
+
 const labels: Partial<Labels> = {
   labelNav: () => "Navigasi bulan",
   labelPrevious: () => "Bulan sebelumnya",
@@ -71,8 +75,10 @@ export function DateField({
           render={<Button variant="outline" className="min-h-11 w-full min-w-0 justify-start text-left font-normal sm:min-h-10" />}
         >
           <CalendarIcon aria-hidden="true" />
-          <span id={`${id}-value`} className={value ? "truncate" : "truncate text-muted-foreground"}>
-            {value ? formatDate(value) : "Pilih tanggal"}
+          <span id={`${id}-value`} className="sr-only">{value ? formatDate(value) : "Pilih tanggal"}</span>
+          <span aria-hidden="true" className={selected ? "truncate tabular-nums" : "truncate text-muted-foreground"}
+            title={selected ? formatDate(value) : undefined}>
+            {selected ? compactDate.format(selected) : "Pilih tanggal"}
           </span>
         </PopoverTrigger>
         <PopoverContent

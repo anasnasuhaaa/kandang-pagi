@@ -49,12 +49,12 @@ export function LedgerTable({
   const hasActions = pageRows.some(({ actions }) => Boolean(actions));
   const filters = { ...(showPeriod ? { mulai: query.from, akhir: query.to } : {}),
     cari: query.search, filter: query.filter, ...(kind?.value ? { jenis: kind.value } : {}) };
-  const params = { ...preserve, ...scopeTableParams(filters, scope), tab };
+  const params = { ...preserve, ...(showFilters ? scopeTableParams(filters, scope) : {}), tab };
   return (
     <DataTable label={label} columns={hasActions ? [...columns, actionColumn] : columns}
       sorting={{ current: sort, path, query: params, scope }}
       toolbar={showFilters && <LedgerFilters key={JSON.stringify(filters)}
-        path={path} tab={tab} query={query} choices={choices} filterLabel={filterLabel} kind={kind} showPeriod={showPeriod} scope={scope} preserve={preserve} />}
+        path={path} tab={tab} query={{ ...query, sort }} choices={choices} filterLabel={filterLabel} kind={kind} showPeriod={showPeriod} scope={scope} preserve={preserve} />}
       empty={empty ?? <EmptyState title="Belum ada catatan" description={showPeriod
         ? "Catatan yang sesuai dengan periode dan pencarian akan tampil di sini."
         : "Catatan yang sesuai dengan pencarian dan filter akan tampil di sini."} />}

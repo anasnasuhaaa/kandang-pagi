@@ -4,9 +4,10 @@ import { PDFDocument } from "pdf-lib";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { connectDatabase } from "../../db";
 import { rateLimit, resellerSpaces } from "../../db/schema";
-import { businessDate, formatDate, shiftBusinessDate } from "../../lib/format";
+import { businessDate, formatDate, formatIDR, shiftBusinessDate } from "../../lib/format";
 import { createAuth } from "../../server/auth/config";
 import { buyFeed, createFeedProduct } from "../../server/services/feed";
+import { postCash } from "../../server/services/finance";
 import { addMovement, createBarn, createFlock } from "../../server/services/population";
 import { testDatabaseUrl } from "../integration/test-database";
 const adminEmail = process.env.KANDANG_E2E_ADMIN_EMAIL!;
@@ -29,10 +30,10 @@ async function signIn(page: Page, email = adminEmail, password = adminPassword, 
 
 async function openModuleTab(page: Page, label: string) {
   const mobile = page.getByRole("combobox", { name: "Bagian modul" });
-  if (await mobile.isVisible()) {
+  if ((page.viewportSize()?.width ?? 1440) < 768) {
     await mobile.click();
     await page.getByRole("option", { name: label, exact: true }).click();
-    await expect(mobile).toHaveText(label);
+    await expect(mobile.locator("[data-slot=select-value]")).toHaveText(label);
   } else {
     await page.getByRole("tab", { name: label, exact: true }).click();
   }
@@ -445,7 +446,8 @@ test("jenis pakan, pembelian, pengiriman, sisa harian, dan produksi telur pada 3
   await sale.getByLabel("Pembayaran diterima (Rp)").fill("25.000");
   await expect(sale.getByText(/Total penjualan: Rp/)).toBeVisible();
   await confirm(sale);
-  await expect(page.getByRole("cell", { name: "Coklat 25 butir" })).toBeVisible();
+  const sold = page.getByRole("table", { name: "Penjualan" }).getByRole("row").filter({ hasText: "25 butir" });
+  await expect(sold.getByText("Coklat", { exact: true })).toBeVisible();
   await expect(page.getByText(/Coklat 45 · Putih 20 · Cacat 10/)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
 });
@@ -743,3 +745,154 @@ for (const { timezoneId, width, colorScheme } of [
     });
   });
 }
+
+test("ledger and report sorting work across filtered pages and preserve PDF scope", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 390, height: 840 });
+  await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "light" });
+  await signIn(page);
+  const cookie = (await page.context().cookies()).map(({ name, value }) => `${name}=${value}`).join("; ");
+  const { client, db } = connectDatabase(testDatabaseUrl());
+  const amounts = [100000, 20000, 5000, 1, 900000, 70, 9000, 3000, 500, 15000, 50000, 75000, 8, 120000, 6000, 40000, 32000];
+  try {
+    for (const [index, amount] of amounts.entries()) {
+      await postCash(new Headers({ cookie }), {
+        requestKey: randomUUID(), businessDate: shiftBusinessDate(businessDate(), -(index % 3)), amount: String(amount),
+        direction: "income", category: "Regresi urutan", note: "Catatan dengan uraian ".repeat(10),
+      }, db);
+    }
+  } finally {
+    await client.end();
+  }
+  const ascending = amounts.toSorted((a, b) => a - b);
+  const idr = (index: number) => formatIDR(BigInt(ascending[index]));
+  await page.goto("/keuangan?tab=pemasukan&cari=Regresi+urutan&halaman=2");
+  const table = page.getByRole("table", { name: "Buku kas farm" });
+  const first = table.locator("tbody tr").first();
+  await expect(first.getByRole("cell").first()).toHaveText("13");
+  await table.getByLabel("Urutkan naik: Jumlah").click();
+  await expect(page).toHaveURL(({ searchParams }) => searchParams.get("urut") === "amount"
+    && searchParams.get("cari") === "Regresi urutan" && !searchParams.has("halaman"));
+  await expect(table.locator('th[data-column="amount"]')).toHaveAttribute("aria-sort", "ascending");
+  await expect(first.getByRole("cell").first()).toHaveText("1");
+  await expect(first.getByRole("cell", { name: idr(0), exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Paginasi" })).toContainText("17 hasil");
+  await page.getByRole("link", { name: "Berikutnya" }).click();
+  await expect(first.getByRole("cell").first()).toHaveText("13");
+  await expect(first.getByRole("cell", { name: idr(12), exact: true })).toBeVisible();
+  await table.getByLabel("Urutkan turun: Jumlah").click();
+  await expect(table.locator('th[data-column="amount"]')).toHaveAttribute("aria-sort", "descending");
+  await expect(first.getByRole("cell", { name: idr(16), exact: true })).toBeVisible();
+  const filters = page.getByRole("form", { name: "Filter catatan" });
+  await filters.getByLabel("Cari catatan").fill("Tidak ada hasil yang cocok");
+  await filters.getByRole("button", { name: "Terapkan filter" }).click();
+  await expect(page.getByRole("navigation", { name: "Paginasi" })).toContainText("0 hasil");
+  await expect(table.locator('th[data-column="amount"]')).toHaveAttribute("aria-sort", "descending");
+  await table.getByLabel("Kembalikan urutan awal: Jumlah").click();
+  await expect(table.locator("th[aria-sort]")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+
+  await page.goto("/laporan?jenis=keuangan&cari=Regresi+urutan");
+  const report = page.getByRole("table", { name: "Buku kas farm" });
+  const pdfLink = page.getByRole("link", { name: "Unduh PDF" });
+  const href = await pdfLink.getAttribute("href");
+  await report.getByLabel("Urutkan naik: Jumlah").click();
+  await expect(report.locator('th[data-column="amount"]')).toHaveAttribute("aria-sort", "ascending");
+  await expect(report.locator("tbody tr").first().getByRole("cell", { name: idr(0), exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Berikutnya" }).click();
+  await expect(report.locator("tbody tr").first().getByRole("cell").first()).toHaveText("16");
+  await expect(report.locator("tbody tr").first().getByRole("cell", { name: idr(15), exact: true })).toBeVisible();
+  expect(await pdfLink.getAttribute("href")).toBe(href);
+  expect((await page.request.get(href!)).status()).toBe(200);
+});
+
+test("all module table variants render their shared header and stay within the viewport", async ({ page, browser }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 430, height: 840 });
+  await signIn(page);
+  const variants = {
+    "/populasi": ["kandang", "kelompok", "mutasi", "riwayat"],
+    "/pakan": ["stok", "aktivitas", "jenis", "sisa", "penyesuaian"],
+    "/produksi-telur": ["panen", "sortir", "stok", "penjualan", "riwayat"],
+    "/kesehatan": ["kejadian", "jadwal", "pelaksanaan", "karantina"],
+    "/keuangan": ["ringkasan", "pemasukan", "pengeluaran", "riwayat"],
+    "/pengaturan": ["akun", "audit", "koreksi"],
+  };
+  async function checkTables(screen: Page, route: string) {
+    await screen.goto(route);
+    const tables = screen.getByRole("table");
+    await expect(tables.first()).toBeVisible();
+    for (const table of await tables.all()) {
+      await expect(table.getByRole("columnheader").first()).toHaveText("#");
+      const dataHeaders = table.locator("th[data-column]:not([data-column=actions])");
+      expect(await dataHeaders.count()).toBeGreaterThan(0);
+      await expect(dataHeaders.locator('[aria-label^="Urutkan naik"]')).toHaveCount(await dataHeaders.count());
+    }
+    const stats = await screen.evaluate(() => ({
+      page: document.documentElement.scrollWidth,
+      width: innerWidth,
+      nested: document.querySelectorAll("[data-slot=table-container] [data-slot=table-container]").length,
+    }));
+    expect(stats.page, route).toBe(stats.width);
+    expect(stats.nested, route).toBe(0);
+  }
+  for (const [route, tabs] of Object.entries(variants)) {
+    for (const tab of tabs) await checkTables(page, `${route}?tab=${tab}`);
+  }
+  await checkTables(page, "/laporan?jenis=operasional");
+  await checkTables(page, "/laporan?jenis=keuangan");
+  await page.goto("/pengaturan");
+  await expect(page.getByRole("heading", { name: "Profil dan tampilan" })).toBeVisible();
+  await page.goto("/laporan?mulai=2020-01-01");
+  await expect(page.getByRole("heading", { name: "Laporan tidak dapat dibuka" })).toBeVisible();
+  await page.goto("/tidak-ada");
+  await expect(page.getByRole("heading", { name: "Halaman tidak ditemukan" })).toBeVisible();
+
+  const { client, db } = connectDatabase(testDatabaseUrl());
+  const accounts = [];
+  try {
+    const auth = createAuth(db);
+    for (const role of ["pemilik", "abk", "reseller"] as const) {
+      const email = `audit-${randomUUID()}@example.test`;
+      const password = randomBytes(20).toString("base64url");
+      const { user } = await auth.api.createUser({ body: { name: "Akun audit UI", email, password, role, data: { status: "active" } } });
+      if (role === "reseller") await db.insert(resellerSpaces).values({ userId: user.id });
+      accounts.push({ role, email, password });
+    }
+  } finally {
+    await client.end();
+  }
+  for (const { role, email, password } of accounts) {
+    const context = await browser.newContext({ viewport: { width: 430, height: 840 } });
+    try {
+      const screen = await context.newPage();
+      await signIn(screen, email, password, role === "reseller" ? "/reseller" : "/dashboard");
+      if (role === "reseller") {
+        for (const tab of ["stok", "masuk", "penjualan", "kas", "satuan"]) await checkTables(screen, `/reseller?tab=${tab}`);
+        await checkTables(screen, "/laporan?jenis=reseller");
+      } else {
+        for (const [route, tabs] of Object.entries(variants)) {
+          if (route === "/pengaturan" || (route === "/keuangan" && role === "abk")) continue;
+          for (const tab of tabs) {
+            await checkTables(screen, `${route}?tab=${tab}`);
+            if (role === "pemilik" && route !== "/keuangan") {
+              await expect(screen.getByRole("button", { name: "Buka tindakan" })).toHaveCount(0);
+            }
+          }
+        }
+        await checkTables(screen, "/laporan?jenis=operasional");
+        if (role === "abk") {
+          await checkTables(screen, "/pengaturan?tab=koreksi");
+          await expect(screen.getByRole("button", { name: "Buka tindakan" })).toHaveCount(0);
+          await screen.goto("/keuangan");
+          await expect(screen).toHaveURL("/dashboard");
+        }
+        await screen.goto("/pengaturan?tab=akun");
+        await expect(screen.getByRole("heading", { name: "Profil dan tampilan" })).toBeVisible();
+        await expect(screen.getByRole("table", { name: "Akun pengguna" })).toHaveCount(0);
+      }
+    } finally {
+      await context.close();
+    }
+  }
+});

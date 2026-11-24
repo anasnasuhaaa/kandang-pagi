@@ -74,7 +74,7 @@ export function ChoiceField({
       <FieldLabel id={id}>{label}</FieldLabel>
       <Select name={name} items={choices} defaultValue={value} onValueChange={onValueChange}>
         <SelectTrigger aria-labelledby={id} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? `${id}-error` : undefined} className="min-h-11 w-full min-w-0 sm:min-h-10">
-          <SelectValue placeholder="Pilih salah satu" />
+          <SelectValue placeholder={choices.find((choice) => choice.value === "")?.label ?? "Pilih salah satu"} />
         </SelectTrigger>
         <SelectContent alignItemWithTrigger={false}>
           {choices.map((choice) => <SelectItem key={choice.value} value={choice.value}>{choice.label}</SelectItem>)}

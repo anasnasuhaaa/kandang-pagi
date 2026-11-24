@@ -72,7 +72,7 @@ function healthRows(view: View, tab: z.infer<typeof tabSchema>, from: string, op
   const flock = (id: string | null) => id ? view.flocks.find((entry) => entry.id === id)?.name ?? "—" : "Seluruh kandang";
   const staff = (id: string) => view.people.find((entry) => entry.id === id)?.name ?? "—";
   if (tab === "kejadian") return {
-    columns: [col("date", "Tanggal", "date"), col("incident", "Kejadian", "wrap"), col("location", "Kandang dan kelompok", "wrap"), col("observations", "Pengamatan", "wrap"), col("treatment", "Tindakan", "wrap"), col("staff", "Petugas"), col("status", "Status")],
+    columns: [col("date", "Tanggal", "date"), col("incident", "Kejadian", "wrap"), col("location", "Kandang dan kelompok", "wrap"), col("observations", "Pengamatan", "wrap"), col("treatment", "Penanganan", "wrap"), col("staff", "Petugas"), col("status", "Status")],
     rows: view.incidents.filter(({ day, data }) => day >= from || data.status !== "resolved").map(({ day, data, note }) => ({
       id: data.id, filter: data.status, search: [data.incident, barn(data.barnId), flock(data.flockId), data.observations, note].join(" "),
       cells: [ledgerCell(day, formatDate(day)), data.incident, `${barn(data.barnId)} · ${flock(data.flockId)}`,

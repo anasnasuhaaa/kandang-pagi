@@ -20,17 +20,17 @@ export function ModuleTabs({ path, tab, tabs, children, action, summary }: {
     <Tabs value={tab} className="min-w-0 gap-4" onValueChange={navigate}>
       <div className="order-1 flex min-w-0 flex-col gap-2 md:order-2 md:flex-row md:flex-wrap md:items-center md:justify-between">
         <div className="md:hidden">
-            <Select items={tabs} value={tab} onValueChange={navigate}>
-              <SelectTrigger aria-label="Bagian modul" className="min-h-11 w-full"><SelectValue /></SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {tabs.map(({ value, label }) => <SelectItem key={value} value={value} className="min-h-11">{label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <Select items={tabs} value={tab} onValueChange={navigate}>
+            <SelectTrigger aria-label="Bagian modul" className="min-h-11 w-full"><SelectValue /></SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {tabs.map(({ value, label }) => <SelectItem key={value} value={value} className="min-h-11">{label}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="hidden min-w-0 max-w-full overflow-x-auto px-0.5 py-1 md:block">
-            <TabsList aria-label="Bagian modul" className="min-h-10">
-              {tabs.map(({ value, label }) => <TabsTrigger key={value} value={value} className="px-3">{label}</TabsTrigger>)}
-            </TabsList>
+          <TabsList aria-label="Bagian modul" className="min-h-10">
+            {tabs.map(({ value, label }) => <TabsTrigger key={value} value={value} className="px-3">{label}</TabsTrigger>)}
+          </TabsList>
         </div>
         {action && <div className="flex min-w-0 flex-wrap items-center gap-2">{action}</div>}
       </div>

@@ -95,4 +95,30 @@ test("dated population ledger, corrections and role boundaries", async (t) => {
     assert.equal(flock.timeline[1].recorded, false);
     assert.equal(barn.rates.hdp, 115 * 100 / 140);
   });
+
+  await t.test("population sorting applies across all matching movements before LIMIT", async () => {
+    const herd = await createFlock(admin.headers, {
+      ...initial, requestKey: randomUUID(), code: "SORT-12", name: "Kelompok urutan", barnId: barnB,
+      count: "300", businessDate: today,
+    }, db);
+    const counts = [11, 2, 8, 14, 3, 17, 9, 1, 18, 5, 4, 10, 12, 7, 6, 16];
+    for (const count of counts) {
+      await addMovement(operator.headers, {
+        requestKey: randomUUID(), flockId: herd.id, kind: "death", count: String(count),
+        businessDate: today, reason: "Uji urutan kematian",
+      }, db);
+    }
+    const input = {
+      date: today, from: today, tab: "riwayat", search: "Uji urutan", flockId: herd.id,
+      sort: { column: "count", direction: "asc" } as const,
+    };
+    const first = await populationPage(owner.headers, { ...input, page: 1 }, db);
+    const second = await populationPage(owner.headers, { ...input, page: 2 }, db);
+    assert.equal(first.total, counts.length);
+    assert.equal(first.history.length, 12);
+    assert.deepEqual([...first.history, ...second.history].map(({ count }) => count), counts.toSorted((a, b) => a - b));
+    const byActor = await populationPage(owner.headers, { ...input, page: 1, sort: { column: "actor", direction: "asc" } }, db);
+    assert.equal(byActor.total, counts.length);
+    await assert.rejects(populationPage(reseller.headers, { ...input, page: 1 }, db), /tidak memiliki akses/);
+  });
 });

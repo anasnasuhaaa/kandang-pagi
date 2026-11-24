@@ -150,3 +150,9 @@
 ```
 
 Never delete decisions; mark superseded with a pointer to the replacement.
+
+## UI/UX refinement engineering decisions
+
+- **A023, 2026-11-24, stages 03–04.** Use one table presentation and vary the sorting layer with the data source. Ledgers and the existing flock snapshot sort the authorized data before slicing. History and account lists keep SQL limits and use a checked column allowlist and stable tie order. PostgreSQL uses Indonesian ICU collation where installed and falls back to the database collation on lowercased text. Browser projections retain exact IDR and canonical grams, keep missing values last, and sort mixed dimensions by unit then amount.
+- **A024, 2026-11-24, stages 04 and 07.** Keep report table sort state local to each bounded section so the PDF consumes the existing display rows in their established order. Encode bigint sort values as tagged decimal strings at the server boundary and restore bigint in the browser. Use independent URL keys for the finance correction queue and reseller stock summary.
+- **A025, 2026-11-24, stages 05 and 09.** Open permission-filtered row workflows from the shared menu. Wait for menu dismissal, then open the existing dialog outside the menu portal with its own request key and focus target. On phones show one module selector and the contextual action together above the metrics. The desktop uses its existing tabs.

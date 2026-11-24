@@ -6,8 +6,8 @@
 
 - Project: Kandang Pagi real client farm management web application.
 - Source repository: **already initialized by user**; do not recreate Git/Next.js.
-- Current stage: **10 complete**.
-- Last completed stage: **10 — Feed navigation and workflows**.
+- UI/UX refinement stages 01–10 are complete. See the [refinement report](reports/UI_UX_REFINEMENT_REPORT.md).
+- Last completed pre-refinement stage: **10 — Feed navigation and workflows**.
 - All nine core modules are implemented and verified locally.
 - Manual release instructions are in the [release runbook](../RELEASE_RUNBOOK.md).
 - Git policy: local stage commits only; **NEVER PUSH**.
@@ -31,7 +31,7 @@
 
 - Actual versions: Next.js 16.4.6, React 19.3.0, Drizzle 0.45.4, postgres.js 4.1.1, Base UI 1.9.0, shadcn 4.23.0, TypeScript 5.9.3.
 - npm 9.2.0, Node.js 22.22.1, existing npm lockfile.
-- shadcn uses `base-nova`; generated primitives and the shared shell are in place.
+- shadcn uses `base-nova`. Shared data tables use TanStack Table 8.21.3 for bounded browser reports and server-side ordering for operational datasets.
 - Verified migrations and account lifecycle on isolated local PostgreSQL 18.6 and Docker PostgreSQL 17. The user's separate localhost development database has 3 migrations, 37 public tables and one active Administrator.
 - Vercel and the isolated Neon production database are pending manual setup and verification.
 - ImageKit names present: `IMAGEKIT_PRIVATE_KEY`, `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`, `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT`.
