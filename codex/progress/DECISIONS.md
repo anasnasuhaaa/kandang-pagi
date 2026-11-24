@@ -20,6 +20,7 @@
 | D014 | Approved | Date-effective historical reports; admin initial stock/cash balances; optional private 2 MiB receipt with one active file and replacement history. | Planning |
 | D015 | Approved | Local Git commit at each stage, report and state file; absolutely no push. | Planning |
 | D016 | Approved | Password creation and replacement share an 8–128-character policy in Zod and Better Auth. Existing credential verification retains its established bounds. | Password maintenance, 2026-11-24 |
+| A021 | Engineering assumption | Use single-date Calendar popovers with Asia/Jakarta and Indonesian localization. Submit the canonical date string under the existing field name and keep the existing schemas responsible for required fields and range rules. | Calendar maintenance, 2026-11-24 |
 | A001 | Engineering default, revisit only if challenged | Mixed-flock eggs cannot be assigned to a particular flock without evidence. | Planning |
 | A002 | Engineering default, revisit only if challenged | Reseller stock base unit is butir; packaging conversions integer and versioned; kg cannot auto-convert to pieces. | Planning |
 | A003 | Engineering default, revisit only if challenged | Price-bearing paid feed purchase posting restricted to Administrator; ABK limited to non-financial operations. | Planning |

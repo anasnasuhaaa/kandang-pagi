@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { DateField } from "@/components/shared/date-field";
 import { FormDialog } from "@/components/shared/form-dialog";
 import { ChoiceField, FormError, TextField, type FieldErrors } from "@/components/shared/form-fields";
 import {
@@ -25,7 +26,7 @@ export type LedgerField = {
   name: string;
   label: string;
   value?: string;
-  type?: "text" | "date";
+  type?: "date";
   inputMode?: "numeric" | "decimal";
   choices?: Choice[];
   max?: string;
@@ -37,11 +38,19 @@ export function LedgerFields({ fields, errors, update }: {
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      {fields.map((field) => field.choices ? <ChoiceField key={field.name} {...field} choices={field.choices}
-        onValueChange={(value) => update(field.name, value ?? "")} error={errors[field.name]} />
-        : <TextField key={field.name} name={field.name} label={field.label} type={field.type}
-          defaultValue={field.value} inputMode={field.inputMode} max={field.max} placeholder={field.placeholder}
-          onChange={(event) => update(field.name, event.currentTarget.value)} error={errors[field.name]} />)}
+      {fields.map(({ name, label, value, type, choices, max, inputMode, placeholder }) => {
+        const error = errors[name];
+        if (type === "date") {
+          return <DateField key={name} name={name} label={label} defaultValue={value} max={max}
+            onValueChange={(date) => update(name, date)} error={error} />;
+        }
+        if (choices) {
+          return <ChoiceField key={name} name={name} label={label} choices={choices} value={value}
+            onValueChange={(choice) => update(name, choice ?? "")} error={error} />;
+        }
+        return <TextField key={name} name={name} label={label} defaultValue={value} inputMode={inputMode} placeholder={placeholder}
+          onChange={(event) => update(name, event.currentTarget.value)} error={error} />;
+      })}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
+import { DateField } from "@/components/shared/date-field";
 import { ChoiceField, FormError, TextField } from "@/components/shared/form-fields";
 import { Button } from "@/components/ui/button";
 import { shiftBusinessDate } from "@/lib/format";
@@ -44,8 +45,8 @@ export function PopulationFilters({
     <form noValidate className="space-y-3" onSubmit={submit} aria-label="Filter catatan">
       {tab && <input type="hidden" name="tab" value={tab} />}
       <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto] xl:items-end">
-        <TextField name="mulai" label="Tanggal mulai (WIB)" type="date" max={today} defaultValue={from} />
-        <TextField name="akhir" label="Tanggal akhir (WIB)" type="date" max={today} defaultValue={to} />
+        <DateField name="mulai" label="Tanggal mulai (WIB)" max={today} defaultValue={from} />
+        <DateField name="akhir" label="Tanggal akhir (WIB)" max={today} defaultValue={to} />
         <ChoiceField name="kandang" label="Kandang" value={barnId ?? ""} choices={[{ value: "", label: "Semua kandang" }, ...barns]} />
         <ChoiceField name="kelompok" label="Kelompok" value={flockId ?? ""} choices={[{ value: "", label: "Semua kelompok" }, ...flocks]} />
         <div className="flex min-w-0 flex-wrap items-end gap-2 sm:col-span-2 xl:col-span-1">

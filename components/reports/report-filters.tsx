@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { DateField } from "@/components/shared/date-field";
 import { ChoiceField, FormError, TextField } from "@/components/shared/form-fields";
 import { Button } from "@/components/ui/button";
 import { categoryLabels } from "@/lib/domain/production-input";
@@ -35,8 +36,8 @@ export function ReportFilters({ selected, options, from, to }: {
         <ChoiceField name="jenis" label="Jenis laporan" value={family}
           choices={options.families.map((value) => ({ value, label: reportNames[value] }))}
           onValueChange={(value) => { if (value && options.families.includes(value as ReportFamily)) setFamily(value as ReportFamily); }} />
-        <TextField name="mulai" label="Mulai (WIB)" type="date" defaultValue={from} />
-        <TextField name="akhir" label="Akhir (WIB)" type="date" defaultValue={to} />
+        <DateField name="mulai" label="Mulai (WIB)" defaultValue={from} />
+        <DateField name="akhir" label="Akhir (WIB)" defaultValue={to} />
         {family === "operasional" && <>
           <ChoiceField name="kandang" label="Kandang" value={selected.kandang ?? ""} choices={[all, ...options.barns]} />
           <ChoiceField name="kelompok" label="Kelompok" value={selected.kelompok ?? ""} choices={[all, ...options.flocks]} />

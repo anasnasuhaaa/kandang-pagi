@@ -4,7 +4,7 @@ import { PDFDocument } from "pdf-lib";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { connectDatabase } from "../../db";
 import { rateLimit, resellerSpaces } from "../../db/schema";
-import { businessDate } from "../../lib/format";
+import { businessDate, formatDate, shiftBusinessDate } from "../../lib/format";
 import { createAuth } from "../../server/auth/config";
 import { addMovement, createBarn, createFlock } from "../../server/services/population";
 import { testDatabaseUrl } from "../integration/test-database";
@@ -394,6 +394,24 @@ test("kesehatan, kas, dan persetujuan koreksi", async ({ page, browser }) => {
   await incident.getByRole("button", { name: "Simpan pencatatan" }).click();
   await expect(page.getByRole("cell", { name: "Pengamatan kandang", exact: true })).toBeVisible();
 
+  await page.goto("/kesehatan?tab=jadwal");
+  await page.getByRole("button", { name: "Buat jadwal vaksin" }).click();
+  const vaccine = page.getByRole("dialog", { name: "Buat jadwal vaksin" });
+  await vaccine.getByRole("combobox", { name: "Kandang" }).click();
+  await page.getByRole("option", { name: "Kandang Koreksi Uji", exact: true }).click();
+  await vaccine.getByLabel("Nama vaksin").fill("Jadwal vaksin uji");
+  const today = businessDate();
+  const future = shiftBusinessDate(today, 1);
+  await vaccine.getByRole("button", { name: /^Tanggal jadwal \(WIB\)/ }).press("Enter");
+  const planCalendar = page.getByRole("dialog", { name: "Kalender Tanggal jadwal (WIB)" });
+  await expect(calendarDay(planCalendar, today)).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(calendarDay(planCalendar, future)).toBeFocused();
+  await page.keyboard.press("Enter");
+  await vaccine.getByRole("button", { name: "Simpan pencatatan" }).click();
+  await expect(page.getByRole("row").filter({ hasText: "Jadwal vaksin uji" })
+    .getByRole("cell", { name: formatDate(future), exact: true })).toBeVisible();
+
   await page.goto("/keuangan?tab=pemasukan");
   await page.getByRole("button", { name: "Tambah pemasukan" }).click();
   const cash = page.getByRole("dialog", { name: "Tambah pemasukan" });
@@ -485,3 +503,118 @@ test("reseller mencatat kemasan, stok, penjualan, dan mengunduh laporan privat",
   expect((await page.request.get("/api/laporan/pdf?jenis=operasional")).status()).toBe(403);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
 });
+
+function calendarDay(popup: Locator, day: string) {
+  return popup.locator(`[role="gridcell"][data-day="${day}"]`).getByRole("button");
+}
+
+for (const { timezoneId, width, colorScheme } of [
+  { timezoneId: "Asia/Jakarta", width: 320, colorScheme: "light" },
+  { timezoneId: "America/Los_Angeles", width: 1440, colorScheme: "dark" },
+] as const) {
+  test.describe(`Pemilih tanggal — ${timezoneId}`, () => {
+    test.use({ timezoneId, viewport: { width, height: 840 }, colorScheme });
+
+    test("tanggal transaksi wajib dan periode laporan opsional", async ({ page }) => {
+      const today = businessDate();
+      const yesterday = shiftBusinessDate(today, -1);
+      const tomorrow = shiftBusinessDate(today, 1);
+      await signIn(page);
+      await page.goto("/keuangan?tab=pemasukan");
+      const add = page.getByRole("button", { name: "Tambah pemasukan" });
+      await expect(add).toBeVisible();
+      const html = page.locator("html");
+      if (!(await html.evaluate((element, theme) => element.classList.contains(theme), colorScheme))) {
+        await page.getByRole("button", { name: "Ganti tema terang atau gelap" }).click();
+      }
+      await expect(html).toContainClass(colorScheme);
+      await add.click();
+      const cash = page.getByRole("dialog", { name: "Tambah pemasukan" });
+      const date = cash.getByRole("button", { name: /^Tanggal \(WIB\)/ });
+      const popup = page.getByRole("dialog", { name: "Kalender Tanggal (WIB)" });
+      await expect(date).toHaveAccessibleName(`Tanggal (WIB) ${formatDate(today)}`);
+      await date.press("Enter");
+      await expect(calendarDay(popup, today)).toBeFocused();
+      await expect(popup.getByRole("button", { name: "Bulan berikutnya" })).toBeDisabled();
+      if (tomorrow.slice(0, 7) === today.slice(0, 7)) {
+        await expect(calendarDay(popup, tomorrow)).toBeDisabled();
+      }
+      const bounds = await popup.boundingBox();
+      expect(bounds).not.toBeNull();
+      expect(bounds!.x).toBeGreaterThanOrEqual(0);
+      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      await page.keyboard.press("Escape");
+      await expect(popup).toBeHidden();
+      await expect(cash).toBeVisible();
+      await expect(date).toBeFocused();
+
+      await date.click();
+      await popup.getByRole("button", { name: "Kosongkan tanggal" }).click();
+      await expect(date).toHaveAccessibleName("Tanggal (WIB) Pilih tanggal");
+      const category = `Uji kalender ${timezoneId}`;
+      await cash.getByLabel("Kategori").fill(category);
+      await cash.getByLabel("Jumlah (Rp)").fill("5000");
+      await cash.getByRole("button", { name: "Periksa dan lanjutkan" }).click();
+      await expect(cash.getByText("Masukkan tanggal yang valid.")).toBeVisible();
+      await expect(date).toHaveAttribute("aria-invalid", "true");
+      await date.evaluate((button) => button.closest("form")!.reset());
+      await expect(date).toHaveAccessibleName(`Tanggal (WIB) ${formatDate(today)}`);
+      await cash.getByLabel("Kategori").fill(category);
+      await cash.getByLabel("Jumlah (Rp)").fill("5000");
+      await date.press("Enter");
+      await expect(calendarDay(popup, today)).toBeFocused();
+      await page.keyboard.press("ArrowLeft");
+      await expect(calendarDay(popup, yesterday)).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(popup).toBeHidden();
+      await expect(date).toBeFocused();
+      await expect(date).toHaveAccessibleName(`Tanggal (WIB) ${formatDate(yesterday)}`);
+      await cash.getByRole("button", { name: "Periksa dan lanjutkan" }).click();
+      await page.getByRole("alertdialog").getByRole("button", { name: "Konfirmasi dan simpan" }).click();
+      await expect(page.getByRole("row").filter({ hasText: category })
+        .getByRole("cell", { name: formatDate(yesterday), exact: true })).toBeVisible();
+
+      await page.goto("/laporan?jenis=keuangan");
+      const start = page.getByRole("button", { name: /^Mulai \(WIB\)/ });
+      const end = page.getByRole("button", { name: /^Akhir \(WIB\)/ });
+      const initialStart = shiftBusinessDate(today, -29);
+      const from = shiftBusinessDate(initialStart, 1);
+      await expect(start).toHaveAccessibleName(`Mulai (WIB) ${formatDate(initialStart)}`);
+      await expect(end).toHaveAccessibleName(`Akhir (WIB) ${formatDate(today)}`);
+      await start.press("Enter");
+      await expect(calendarDay(page.getByRole("dialog", { name: "Kalender Mulai (WIB)" }), initialStart)).toBeFocused();
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("Enter");
+      await end.press("Enter");
+      await expect(calendarDay(page.getByRole("dialog", { name: "Kalender Akhir (WIB)" }), today)).toBeFocused();
+      await page.keyboard.press("ArrowLeft");
+      await page.keyboard.press("Enter");
+      const apply = page.getByRole("button", { name: "Terapkan filter" });
+      await apply.click();
+      await expect(page).toHaveURL(({ searchParams }) => searchParams.get("mulai") === from && searchParams.get("akhir") === yesterday);
+      await expect(page.getByRole("link", { name: "Unduh PDF" })).toHaveAttribute("href", new RegExp(`mulai=${from}&akhir=${yesterday}`));
+      await start.click();
+      await page.getByRole("dialog", { name: "Kalender Mulai (WIB)" }).getByRole("button", { name: "Kosongkan tanggal" }).click();
+      await expect(start).toHaveAccessibleName("Mulai (WIB) Pilih tanggal");
+      await apply.click();
+      await expect(page).toHaveURL(({ searchParams }) => !searchParams.has("mulai") && searchParams.get("akhir") === yesterday);
+      await expect(start).toHaveAccessibleName(`Mulai (WIB) ${formatDate(shiftBusinessDate(yesterday, -29))}`);
+
+      for (const { path, tab, label } of [
+        { path: "/keuangan", tab: "pemasukan", label: "Hingga tanggal (WIB)" },
+        { path: "/dashboard", tab: null, label: "Tanggal akhir (WIB)" },
+        { path: "/populasi", tab: "mutasi", label: "Tanggal akhir (WIB)" },
+      ]) {
+        await page.goto(tab ? `${path}?tab=${tab}` : path);
+        const filters = page.getByRole("form", { name: "Filter catatan" });
+        await filters.getByRole("button", { name: `${label} ${formatDate(today)}`, exact: true }).click();
+        await calendarDay(page.getByRole("dialog", { name: `Kalender ${label}` }), yesterday).click();
+        await filters.getByRole("button", { name: "Terapkan filter" }).click();
+        await expect(page).toHaveURL(({ pathname, searchParams }) =>
+          pathname === path && searchParams.get("akhir") === yesterday && searchParams.get("tab") === tab,
+        );
+      }
+    });
+  });
+}

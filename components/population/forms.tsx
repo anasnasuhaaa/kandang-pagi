@@ -9,6 +9,7 @@ import {
   addMovementAction, cancelMovementAction, createBarnAction, createFlockAction, setBarnStatusAction,
 } from "@/app/(workspace)/populasi/actions";
 import { FormDialog } from "@/components/shared/form-dialog";
+import { DateField } from "@/components/shared/date-field";
 import { ChoiceField, FormError, TextField } from "@/components/shared/form-fields";
 import { useValidatedForm } from "@/components/shared/use-validated-form";
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,7 @@ export function FlockForm({ barns, today }: { barns: Choice[]; today: string }) 
           <TextField name="name" label="Nama kelompok" error={form.errors.name} />
           <ChoiceField name="barnId" label="Kandang penempatan" choices={barns} error={form.errors.barnId} />
           <ChoiceField name="kind" label="Jenis penempatan" choices={placementKinds} value="arrival" error={form.errors.kind} />
-          <TextField name="businessDate" label="Tanggal penempatan (WIB)" type="date" defaultValue={today} max={today} error={form.errors.businessDate} />
+          <DateField name="businessDate" label="Tanggal penempatan (WIB)" defaultValue={today} max={today} error={form.errors.businessDate} />
           <TextField name="origin" label="Asal ternak" error={form.errors.origin} />
           <TextField name="count" label="Jumlah awal (ekor)" inputMode="numeric" error={form.errors.count} />
           <TextField name="age" label="Umur awal (hari)" inputMode="numeric" error={form.errors.age} />
@@ -95,7 +96,7 @@ export function MovementForm({ barns, flocks, today }: { barns: Choice[]; flocks
       <form noValidate onSubmit={form.submit} className="space-y-4">
         <input type="hidden" name="requestKey" value={key} />
         <ChoiceField name="flockId" label="Kelompok ternak" choices={flocks} error={form.errors.flockId} />
-        <TextField name="businessDate" label="Tanggal mutasi (WIB)" type="date" defaultValue={today} max={today} error={form.errors.businessDate} />
+        <DateField name="businessDate" label="Tanggal mutasi (WIB)" defaultValue={today} max={today} error={form.errors.businessDate} />
         <ChoiceField name="kind" label="Jenis mutasi" choices={movementKinds} value="death" onValueChange={(value) => setTransfer(value === "transfer")} error={form.errors.kind} />
         {transfer ? <>
           <ChoiceField name="toBarnId" label="Kandang tujuan" choices={barns} error={form.errors.toBarnId} />

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
+import { DateField } from "@/components/shared/date-field";
 import { ChoiceField, FormError, TextField } from "@/components/shared/form-fields";
 import { Button } from "@/components/ui/button";
 import { businessDate, shiftBusinessDate } from "@/lib/format";
@@ -32,8 +33,8 @@ export function LedgerFilters({ path, tab, query, choices }: {
   return (
     <form noValidate onSubmit={submit} className="space-y-2" aria-label="Filter catatan">
       <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-end">
-        <TextField name="mulai" label="Dari tanggal (WIB)" type="date" defaultValue={query.from} />
-        <TextField name="akhir" label="Hingga tanggal (WIB)" type="date" defaultValue={query.to} />
+        <DateField name="mulai" label="Dari tanggal (WIB)" defaultValue={query.from} />
+        <DateField name="akhir" label="Hingga tanggal (WIB)" defaultValue={query.to} />
         {choices.length > 0 && <ChoiceField name="filter" label="Filter" value={query.filter} choices={[{ value: "", label: "Semua" }, ...choices]} />}
         <TextField name="cari" label="Cari catatan" placeholder="Cari" defaultValue={query.search} />
         <Button type="submit" variant="outline" className="h-10">Terapkan filter</Button>
