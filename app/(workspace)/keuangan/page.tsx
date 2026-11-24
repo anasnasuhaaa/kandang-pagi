@@ -1,7 +1,7 @@
 import { RowActions, type RowAction } from "@/components/shared/row-actions";
 import { tableColumn as col } from "@/components/shared/data-table";
 import type { Metadata } from "next";
-import { Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, History, Wallet } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
@@ -9,11 +9,12 @@ import { CashOpeningForm, ManualCashForm } from "@/components/finance/cash-forms
 import { CorrectionForm } from "@/components/finance/correction-forms";
 import { CorrectionTable } from "@/components/finance/correction-table";
 import { CleanupReceipts, ReceiptDialog } from "@/components/finance/receipt-dialog";
-import { LedgerTable, ledgerCell } from "@/components/inventory/ledger-table";
+import { LedgerTable, ledgerBadge, ledgerCell } from "@/components/inventory/ledger-table";
 import { ModuleTabs } from "@/components/shared/module-tabs";
 import { MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
-import { Badge } from "@/components/ui/badge";
-import { ledgerQuery } from "@/lib/domain/ledger-query";
+import { SemanticIndicator, StatusBadge, statusPresentation } from "@/components/shared/status-badge";
+import { cashPresentation, recordStatus } from "@/lib/status-presentation";
+import { ledgerQuery, preserveLedgerParams } from "@/lib/domain/ledger-query";
 import { businessDate, formatDate, formatIDR } from "@/lib/format";
 import { requireModule } from "@/server/auth/workspace";
 import { financeView } from "@/server/services/finance";
@@ -26,7 +27,7 @@ const tabs = [
 ];
 const tabSchema = z.enum(["ringkasan", "pemasukan", "pengeluaran", "riwayat"]).catch("ringkasan");
 const sources: Record<string, string> = { egg_sale: "Penjualan telur", feed_purchase: "Pembelian pakan", cash_manual: "Kas mandiri", cash_opening: "Saldo awal", reversal: "Pembalik koreksi" };
-const cashLabels = { opening: "Saldo awal", income: "Pemasukan", expense: "Pengeluaran", reversal: "Pembalik" };
+const cashIcons = { opening: Wallet, income: ArrowDownLeft, expense: ArrowUpRight, reversal: History };
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default function Page(props: Props) {
@@ -50,6 +51,7 @@ async function FinanceContent({ searchParams }: Props) {
     tab === "pengeluaran" ? row.direction === "expense" : true);
   const rows = selected.map((row) => {
     const source = sources[row.origin] ?? "Transaksi kas";
+    const direction = statusPresentation(cashPresentation, row.direction);
     const editable = Boolean(administrator && row.effective && !row.reversesId);
     const actions: RowAction[] = [];
     const activeReceipt = Boolean(row.attachment);
@@ -67,9 +69,13 @@ async function FinanceContent({ searchParams }: Props) {
     }
     return {
       id: row.id, filter: row.direction, search: [row.category, source, row.note, formatIDR(row.delta)].join(" "),
-      cells: [ledgerCell(row.date, formatDate(row.date)), row.category, source, ledgerCell(row.delta, formatIDR(row.delta)), ledgerCell(row.note || null, row.note || "—"),
-        ledgerCell(row.effective ? cashLabels[row.direction] : "Dibatalkan", <Badge variant={row.effective ? "secondary" : "outline"}>{row.effective ? cashLabels[row.direction] : "Dibatalkan"}</Badge>),
-        ledgerCell(row.attachment ? 1 : 0, row.attachment ? "Tersedia" : "Belum ada")],
+      cells: [
+        ledgerCell(row.date, formatDate(row.date)),
+        ledgerCell(direction.label, <SemanticIndicator {...direction} icon={cashIcons[row.direction] ?? Wallet} />),
+        row.category, source, ledgerCell(row.delta, formatIDR(row.delta)), ledgerCell(row.note || null, row.note || "—"),
+        ledgerBadge(recordStatus(Boolean(row.effective))),
+        ledgerCell(activeReceipt ? 1 : 0, <StatusBadge label={activeReceipt ? "Tersedia" : "Belum ada"} tone={activeReceipt ? "info" : "neutral"} />),
+      ],
       actions: actions.length ? <RowActions actions={actions} /> : undefined,
     };
   });
@@ -83,10 +89,10 @@ async function FinanceContent({ searchParams }: Props) {
     </section>
     <ModuleTabs path={path} tab={tab} tabs={tabs}>
       <div className="space-y-5">
-        <LedgerTable path={path} tab={tab} query={query} label="Buku kas farm" rows={rows}
-          columns={[col("date", "Tanggal", "date"), col("category", "Kategori", "wrap"), col("source", "Sumber", "wrap"), col("amount", "Jumlah", "number"), col("note", "Catatan", "wrap"), col("status", "Status"), col("receipt", "Bukti")]}
-          choices={Object.entries(cashLabels).map(([value, label]) => ({ value, label }))} />
-        {tab === "riwayat" && administrator && <CorrectionTable path={path} tab={tab} query={query} administrator />}
+        <LedgerTable path={path} tab={tab} query={query} label="Buku kas farm" rows={rows} preserve={tab === "riwayat" ? preserveLedgerParams(raw, "koreksi") : undefined}
+          columns={[col("date", "Tanggal", "date"), col("direction", "Jenis"), col("category", "Kategori", "wrap"), col("source", "Sumber", "wrap"), col("amount", "Jumlah", "number"), col("note", "Catatan", "wrap"), col("status", "Status"), col("receipt", "Bukti")]}
+          choices={Object.entries(cashPresentation).map(([value, { label }]) => ({ value, label }))} />
+        {tab === "riwayat" && administrator && <CorrectionTable path={path} tab={tab} query={ledgerQuery(raw, "koreksi", query)} scope="koreksi" preserve={preserveLedgerParams(raw)} administrator />}
       </div>
     </ModuleTabs>
   </>;

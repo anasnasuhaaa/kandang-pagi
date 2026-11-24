@@ -8,7 +8,7 @@ import { z } from "zod";
 import { DateField } from "@/components/shared/date-field";
 import { ChoiceField, FormError, TextField } from "@/components/shared/form-fields";
 import { Button } from "@/components/ui/button";
-import { sortParams, tableHref, type TableSort } from "@/lib/domain/table-sort";
+import { scopeTableParams, sortParams, tableHref, type TableSort } from "@/lib/domain/table-sort";
 import { businessDate, shiftBusinessDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { businessDateSchema } from "@/lib/validation";
@@ -26,12 +26,14 @@ const filtersSchema = searchSchema.extend({
 
 export type LedgerKindFilter = { value: string; choices: Choice[] };
 
-export function LedgerFilters({ path, tab, query, choices, filterLabel = "Filter", kind, showPeriod = true }: {
+export function LedgerFilters({ path, tab, query, choices, filterLabel = "Filter", kind, showPeriod = true, scope, preserve = {} }: {
   path: string; tab: string; query: { from: string; to: string; search: string; filter: string; sort?: TableSort };
   choices: Choice[];
   filterLabel?: string;
   kind?: LedgerKindFilter;
   showPeriod?: boolean;
+  scope?: string;
+  preserve?: Record<string, string>;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -40,7 +42,8 @@ export function LedgerFilters({ path, tab, query, choices, filterLabel = "Filter
     const result = (showPeriod ? filtersSchema : searchSchema).safeParse(Object.fromEntries(new FormData(event.currentTarget)));
     if (!result.success) return setError(result.error.issues[0].message);
     const { jenis, filter, ...values } = result.data;
-    router.push(tableHref(path, { ...values, filter: filter ?? "", tab, ...sortParams(query.sort), jenis: kind ? jenis ?? "" : "" }), { scroll: false });
+    const params = scopeTableParams({ ...values, filter: filter ?? "", jenis: kind ? jenis ?? "" : "" }, scope);
+    router.push(tableHref(path, { ...preserve, ...params, ...sortParams(query.sort, scope), tab }), { scroll: false });
     setError("");
   }
 

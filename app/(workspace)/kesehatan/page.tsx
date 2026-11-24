@@ -6,10 +6,11 @@ import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
 import { EndQuarantineForm, IncidentForm, IncidentStatusForm, QuarantineForm, VaccineExecutionForm, VaccinePlanForm } from "@/components/health/entry-forms";
-import { LedgerTable, ledgerCell, type LedgerRow } from "@/components/inventory/ledger-table";
+import { LedgerTable, ledgerBadge, ledgerCell, type LedgerRow } from "@/components/inventory/ledger-table";
 import { ModuleTabs } from "@/components/shared/module-tabs";
 import { MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
-import { Badge } from "@/components/ui/badge";
+import { statusPresentation } from "@/components/shared/status-badge";
+import { incidentPresentation, vaccinePresentation } from "@/lib/status-presentation";
 import { ledgerQuery } from "@/lib/domain/ledger-query";
 import { businessDate, formatDate } from "@/lib/format";
 import { requireModule } from "@/server/auth/workspace";
@@ -22,8 +23,6 @@ const tabs = [
   { value: "pelaksanaan", label: "Pelaksanaan vaksin" }, { value: "karantina", label: "Karantina" },
 ];
 const tabSchema = z.enum(["kejadian", "jadwal", "pelaksanaan", "karantina"]).catch("kejadian");
-const incidentStatus = { open: "Terbuka", monitoring: "Dipantau", resolved: "Selesai" };
-const scheduleStatus = { overdue: "Terlambat", today: "Hari ini", upcoming: "Mendatang", done: "Sudah dilaksanakan" };
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 type View = Awaited<ReturnType<typeof healthView>>;
 
@@ -49,8 +48,8 @@ async function HealthContent({ searchParams }: Props) {
     tab === "pelaksanaan" && schedules.length ? <VaccineExecutionForm today={today} staff={staff} schedules={schedules} /> :
     tab === "karantina" && barns.length && flocks.length ? <QuarantineForm {...props} /> : null;
   const { rows, columns } = healthRows(data, tab, query.from, operator, today);
-  const filterOptions = tab === "jadwal" ? Object.entries(scheduleStatus).map(([value, label]) => ({ value, label })) :
-    tab === "kejadian" ? Object.entries(incidentStatus).map(([value, label]) => ({ value, label })) : barns;
+  const filterOptions = tab === "jadwal" ? Object.entries(vaccinePresentation).map(([value, { label }]) => ({ value, label })) :
+    tab === "kejadian" ? Object.entries(incidentPresentation).map(([value, { label }]) => ({ value, label })) : barns;
   return <>
     <ModuleHeader title="Kesehatan & Vaksin" description="Pantau kejadian kesehatan, jadwal dan pelaksanaan vaksin, serta periode karantina." icon={Activity} action={action} />
     <section aria-label="Ringkasan kesehatan" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -73,7 +72,7 @@ function healthRows(view: View, tab: z.infer<typeof tabSchema>, from: string, op
     rows: view.incidents.filter(({ day, data }) => day >= from || data.status !== "resolved").map(({ day, data, note }) => ({
       id: data.id, filter: data.status, search: [data.incident, barn(data.barnId), flock(data.flockId), data.observations, note].join(" "),
       cells: [ledgerCell(day, formatDate(day)), data.incident, `${barn(data.barnId)} · ${flock(data.flockId)}`,
-        data.observations, ledgerCell(data.treatment || note || null, [data.treatment, note].filter(Boolean).join(" · ") || "—"), staff(data.responsibleId), incidentStatus[data.status]],
+        data.observations, ledgerCell(data.treatment || note || null, [data.treatment, note].filter(Boolean).join(" · ") || "—"), staff(data.responsibleId), ledgerBadge(statusPresentation(incidentPresentation, data.status))],
       actions: operator ? <RowActions actions={[{ id: "status", label: "Perbarui status", icon: "edit",
         content: <IncidentStatusForm id={data.id} status={data.status} /> }]} /> : undefined,
     })),
@@ -83,7 +82,7 @@ function healthRows(view: View, tab: z.infer<typeof tabSchema>, from: string, op
     rows: view.schedules.filter((plan) => plan.dueDate >= from || plan.status !== "done").map((plan) => ({
       id: plan.id, filter: plan.status, search: [plan.vaccineName, barn(plan.barnId), flock(plan.flockId), plan.note].join(" "),
       cells: [ledgerCell(plan.dueDate, formatDate(plan.dueDate)), plan.vaccineName, barn(plan.barnId), flock(plan.flockId),
-        ledgerCell(scheduleStatus[plan.status], <Badge variant={plan.status === "overdue" ? "destructive" : "secondary"}>{scheduleStatus[plan.status]}</Badge>), ledgerCell(plan.note || null, plan.note || "—")],
+        ledgerBadge(statusPresentation(vaccinePresentation, plan.status)), ledgerCell(plan.note || null, plan.note || "—")],
     })),
   };
   if (tab === "pelaksanaan") return {
@@ -101,7 +100,7 @@ function healthRows(view: View, tab: z.infer<typeof tabSchema>, from: string, op
     rows: view.quarantine.filter(({ startedOn, endedOn }) => startedOn >= from || !endedOn || endedOn >= from).map((row) => ({
       id: row.id, filter: row.barnId, search: [barn(row.barnId), flock(row.flockId), row.reason].join(" "),
       cells: [ledgerCell(row.startedOn, formatDate(row.startedOn)), ledgerCell(row.endedOn, row.endedOn ? formatDate(row.endedOn) : "—"), barn(row.barnId), flock(row.flockId), row.reason,
-        row.active ? "Aktif" : "Selesai"],
+        ledgerBadge(row.active ? { label: "Aktif", tone: "warning" } : { label: "Selesai", tone: "success" })],
       actions: operator && !row.endedOn ? <RowActions actions={[{ id: "end", label: "Akhiri karantina", icon: "check",
         content: <EndQuarantineForm id={row.id} today={today} /> }]} /> : undefined,
     })),

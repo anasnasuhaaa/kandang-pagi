@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { nextTableSort, sortParams, tableHref, tableColumn, type DataColumn, type TableSort } from "@/lib/domain/table-sort";
+import { nextTableSort, sortParams, tableHref, tableParam, tableColumn, type DataColumn, type TableSort } from "@/lib/domain/table-sort";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,7 +13,7 @@ export { tableColumn, type DataColumn };
 export const actionColumn = tableColumn("actions", "Tindakan", "actions");
 
 type Sorting = { current?: TableSort } & (
-  { path: string; query: Record<string, string> } | { onSort: (sort?: TableSort) => void }
+  { path: string; query: Record<string, string>; scope?: string } | { onSort: (sort?: TableSort) => void }
 );
 
 function SortHeader({ column, sorting }: { column: DataColumn; sorting: Sorting }) {
@@ -21,7 +21,7 @@ function SortHeader({ column, sorting }: { column: DataColumn; sorting: Sorting 
   const next = nextTableSort(column.key, sorting.current);
   const Icon = direction === "asc" ? ArrowUp : direction === "desc" ? ArrowDown : ArrowUpDown;
   const action = next?.direction === "asc" ? "Urutkan naik" : next?.direction === "desc" ? "Urutkan turun" : "Kembalikan urutan awal";
-  const link = "path" in sorting ? tableHref(sorting.path, { ...sorting.query, ...sortParams(next), halaman: "" }) : undefined;
+  const link = "path" in sorting ? tableHref(sorting.path, { ...sorting.query, ...sortParams(next, sorting.scope), [tableParam("halaman", sorting.scope)]: "" }) : undefined;
   return <Button variant="ghost" size="sm" type={link ? undefined : "button"} nativeButton={!link}
     render={link ? <Link href={link} scroll={false} /> : undefined}
     aria-label={`${action}: ${column.label}`}

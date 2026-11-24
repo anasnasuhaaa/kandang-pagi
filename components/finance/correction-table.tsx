@@ -1,9 +1,11 @@
 import { RowActions } from "@/components/shared/row-actions";
 import { tableColumn as col } from "@/components/shared/data-table";
 import { headers } from "next/headers";
-import { LedgerTable, ledgerCell } from "@/components/inventory/ledger-table";
+import { LedgerTable, ledgerBadge, ledgerCell } from "@/components/inventory/ledger-table";
 import { MetricCard } from "@/components/shared/module";
-import { Badge } from "@/components/ui/badge";
+import { statusPresentation } from "@/components/shared/status-badge";
+import { correctionPresentation } from "@/lib/status-presentation";
+import type { ledgerQuery } from "@/lib/domain/ledger-query";
 import { formatDate, formatIDR, formatQuantity } from "@/lib/format";
 import { correctionView } from "@/server/services/corrections";
 import { CorrectionForm, ReviewCorrectionForm, type CorrectionChoice } from "./correction-forms";
@@ -13,10 +15,11 @@ const labels: Record<string, string> = {
   feed_issue: "Pakan keluar", feed_close: "Sisa harian pakan", feed_adjustment: "Penyesuaian pakan", egg_harvest: "Panen telur",
   egg_grading: "Sortir telur", egg_sale: "Penjualan telur", egg_adjustment: "Penyesuaian telur", cash_manual: "Kas mandiri", cash_opening: "Saldo awal kas",
 };
-const statuses = { pending: "Menunggu", approved: "Disetujui", rejected: "Ditolak" };
-type Query = { from: string; to: string; search: string; page: number; filter: string };
+type Query = ReturnType<typeof ledgerQuery>;
 
-export async function CorrectionTable({ path, tab, query, administrator }: { path: string; tab: string; query: Query; administrator: boolean }) {
+export async function CorrectionTable({ path, tab, query, administrator, scope, preserve }: {
+  path: string; tab: string; query: Query; administrator: boolean; scope?: string; preserve?: Record<string, string>;
+}) {
   const { requests, candidates } = await correctionView(await headers());
   const choices: CorrectionChoice[] = candidates.map((row) => ({
     value: row.id, label: `${formatDate(row.day)} · ${labels[row.kind] ?? "Kegiatan"}${row.note ? ` · ${row.note}` : ""}`,
@@ -44,7 +47,7 @@ export async function CorrectionTable({ path, tab, query, administrator }: { pat
     return {
       id: request.id, filter: request.status, search: [label, requester, request.reason, request.reviewReason].join(" "),
       cells: [ledgerCell(day, formatDate(day)), label, requester, ledgerCell(originalValue, original), ledgerCell(proposedValue, after), request.reason,
-        ledgerCell(statuses[request.status], <Badge variant={request.status === "rejected" ? "outline" : "secondary"}>{statuses[request.status]}</Badge>),
+        ledgerBadge(statusPresentation(correctionPresentation, request.status)),
         ledgerCell(request.reviewReason, request.reviewReason ?? "—")],
       actions: administrator && request.status === "pending" ? <RowActions actions={[{ id: "review", label: "Tinjau permintaan", icon: "history",
         content: <ReviewCorrectionForm id={request.id} /> }]} /> : undefined,
@@ -55,8 +58,8 @@ export async function CorrectionTable({ path, tab, query, administrator }: { pat
       <MetricCard label="Koreksi menunggu" value={requests.filter(({ request }) => request.status === "pending").length} />
       {choices.length > 0 && <CorrectionForm choices={choices} direct={false} />}
     </div>
-    <LedgerTable path={path} tab={tab} label="Permintaan koreksi" rows={rows} query={query}
+    <LedgerTable path={path} tab={tab} label="Permintaan koreksi" rows={rows} query={query} scope={scope} preserve={preserve}
       columns={[col("correction-date", "Tanggal catatan", "date"), col("correction-event", "Kegiatan"), col("requester", "Pemohon"), col("original", "Nilai awal", "number"), col("proposed", "Usulan", "number"), col("reason", "Alasan", "wrap"), col("correction-status", "Status"), col("review", "Alasan tinjauan", "wrap")]}
-      choices={Object.entries(statuses).map(([value, label]) => ({ value, label }))} />
+      choices={Object.entries(correctionPresentation).map(([value, { label }]) => ({ value, label }))} />
   </section>;
 }

@@ -30,8 +30,16 @@ export function nextTableSort(column: string, sort?: TableSort): TableSort | und
   if (sort.direction === "asc") return { column, direction: "desc" };
 }
 
-export function sortParams(sort?: TableSort) {
-  return sort ? { urut: sort.column, arah: sort.direction } : { urut: "", arah: "" };
+export function tableParam(name: string, scope = "") {
+  return scope ? `${scope}-${name}` : name;
+}
+
+export function scopeTableParams(params: Record<string, string>, scope?: string): Record<string, string> {
+  return Object.fromEntries(Object.entries(params).map(([key, value]) => [tableParam(key, scope), value]));
+}
+
+export function sortParams(sort?: TableSort, scope?: string) {
+  return scopeTableParams({ urut: sort?.column ?? "", arah: sort?.direction ?? "" }, scope);
 }
 
 export function tableHref(path: string, query: Record<string, string>) {

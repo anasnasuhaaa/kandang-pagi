@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { tableHref } from "@/lib/domain/table-sort";
+import { tableHref, tableParam } from "@/lib/domain/table-sort";
 
 type Navigation = { current: number; pages: number; total: number };
-type Destination = { path: string; query: Record<string, string> } | { onPage: (page: number) => void };
+type Destination = { path: string; query: Record<string, string>; scope?: string } | { onPage: (page: number) => void };
 
 export function PageLinks({ current, pages, total, ...destination }: Navigation & Destination) {
   return (
@@ -20,7 +20,7 @@ export function PageLinks({ current, pages, total, ...destination }: Navigation 
         const disabled = page < 1 || page > pages;
         const content = <><Icon aria-hidden="true" /><span className="hidden sm:inline">{label}</span></>;
         return !disabled && "path" in destination
-          ? <Link key={direction} href={tableHref(destination.path, { ...destination.query, halaman: String(page) })}
+          ? <Link key={direction} href={tableHref(destination.path, { ...destination.query, [tableParam("halaman", destination.scope)]: String(page) })}
               aria-label={label} className={buttonVariants({ variant: "outline", size: "sm", className: "min-h-10 min-w-10" })} scroll={false}>{content}</Link>
           : <Button key={direction} type="button" variant="outline" size="sm" className="min-h-10 min-w-10"
               aria-label={label} disabled={disabled} onClick={"onPage" in destination ? () => destination.onPage(page) : undefined}>{content}</Button>;
