@@ -1,3 +1,4 @@
+import { tableColumn as col } from "@/components/shared/data-table";
 import type { Metadata } from "next";
 import { Wallet } from "lucide-react";
 import { headers } from "next/headers";
@@ -7,7 +8,7 @@ import { CashOpeningForm, ManualCashForm } from "@/components/finance/cash-forms
 import { CorrectionForm } from "@/components/finance/correction-forms";
 import { CorrectionTable } from "@/components/finance/correction-table";
 import { CleanupReceipts, ReceiptDialog } from "@/components/finance/receipt-dialog";
-import { LedgerTable } from "@/components/inventory/ledger-table";
+import { LedgerTable, ledgerCell } from "@/components/inventory/ledger-table";
 import { ModuleTabs } from "@/components/shared/module-tabs";
 import { MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { Badge } from "@/components/ui/badge";
@@ -51,12 +52,15 @@ async function FinanceContent({ searchParams }: Props) {
     const editable = Boolean(administrator && row.effective && !row.reversesId);
     return {
       id: row.id, filter: row.direction, search: [row.category, source, row.note, formatIDR(row.delta)].join(" "),
-      cells: [formatDate(row.date), row.category, source, formatIDR(row.delta), row.note || "—",
-        <Badge key={row.id} variant={row.effective ? "secondary" : "outline"}>{row.effective ? cashLabels[row.direction] : "Dibatalkan"}</Badge>,
-        !row.reversesId && (row.attachment || editable) ? <ReceiptDialog key={row.id} cashId={row.id} active={Boolean(row.attachment)} uploadAllowed={editable} /> : "—",
-        ...(administrator ? [editable ? <CorrectionForm key={row.id} direct selected={{
+      cells: [ledgerCell(row.date, formatDate(row.date)), row.category, source, ledgerCell(row.delta, formatIDR(row.delta)), ledgerCell(row.note || null, row.note || "—"),
+        ledgerCell(row.effective ? cashLabels[row.direction] : "Dibatalkan", <Badge variant={row.effective ? "secondary" : "outline"}>{row.effective ? cashLabels[row.direction] : "Dibatalkan"}</Badge>),
+        ledgerCell(row.attachment ? 1 : 0, row.attachment ? "Tersedia" : "Belum ada")],
+      actions: (!row.reversesId && (row.attachment || editable)) || editable ? <>
+        {!row.reversesId && (row.attachment || editable) && <ReceiptDialog cashId={row.id} active={Boolean(row.attachment)} uploadAllowed={editable} />}
+        {editable && <CorrectionForm direct selected={{
           value: row.id, label: source, modes: row.origin === "cash_manual" ? ["cancel", "amount"] : ["cancel"],
-        }} /> : "—"] : [])],
+        }} />}
+      </> : undefined,
     };
   });
   return <>
@@ -70,7 +74,7 @@ async function FinanceContent({ searchParams }: Props) {
     <ModuleTabs path={path} tab={tab} tabs={tabs}>
       <div className="space-y-5">
         <LedgerTable path={path} tab={tab} query={query} label="Buku kas farm" rows={rows}
-          columnLabels={["Tanggal", "Kategori", "Sumber", "Jumlah", "Catatan", "Status", "Bukti", ...(administrator ? ["Koreksi"] : [])]}
+          columns={[col("date", "Tanggal", "date"), col("category", "Kategori", "wrap"), col("source", "Sumber", "wrap"), col("amount", "Jumlah", "number"), col("note", "Catatan", "wrap"), col("status", "Status"), col("receipt", "Bukti")]}
           choices={Object.entries(cashLabels).map(([value, label]) => ({ value, label }))} />
         {tab === "riwayat" && administrator && <CorrectionTable path={path} tab={tab} query={query} administrator />}
       </div>

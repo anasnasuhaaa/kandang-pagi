@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readTableSort } from "./table-sort";
 import { populationPeriod } from "./population-input";
 
 const querySchema = z.object({
@@ -10,5 +11,5 @@ const querySchema = z.object({
 export function ledgerQuery(raw: unknown) {
   const period = populationPeriod(raw, 30);
   const query = querySchema.parse(raw);
-  return { ...period, search: query.cari, page: query.halaman, filter: query.filter };
+  return { ...period, search: query.cari, page: query.halaman, filter: query.filter, sort: readTableSort(raw) };
 }

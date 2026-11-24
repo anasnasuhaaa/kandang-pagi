@@ -60,3 +60,7 @@ export function recordStatus(effective: boolean): StatusPresentation {
 export function activeStatus(active: boolean): StatusPresentation {
   return active ? { label: "Aktif", tone: "success" } : { label: "Nonaktif", tone: "neutral" };
 }
+
+export function flockPlacementStatus(alive: number | undefined) {
+  return alive === undefined ? "Belum ditempatkan" : alive > 0 ? "Aktif" : "Selesai";
+}

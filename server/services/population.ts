@@ -2,9 +2,12 @@ import { and, asc, count, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm
 import { alias } from "drizzle-orm/pg-core";
 import { database, type Transaction } from "../../db";
 import { barns, eggHarvests, farmEvents, flocks, populationMovements, user } from "../../db/schema";
+import { flockPlacementStatus } from "../../lib/status-presentation";
 import { datesBetween } from "../../lib/format";
 import { applyMovement, PopulationConflict, productionRates, type Movement, type Placement } from "../../lib/domain/livestock";
-import { barnSchema, barnStatusSchema, cancelMovementSchema, flockSchema, movementSchema } from "../../lib/domain/population-input";
+import { barnSchema, barnStatusSchema, cancelMovementSchema, flockSchema, movementLabels, movementSchema } from "../../lib/domain/population-input";
+import { sortTableRows, type SortValue, type TableSort } from "../../lib/domain/table-sort";
+import { labelOrder, tableOrder, textOrder } from "./table-order";
 import { requireRole } from "../auth/permissions";
 import { ServiceError } from "./errors";
 import { feedBarnBalance } from "./feed";
@@ -267,7 +270,7 @@ export async function populationDashboard(headers: Headers, period: Period, db =
 }
 
 export async function populationPage(headers: Headers, input: {
-  date: string; from: string; barnId?: string; flockId?: string; search: string; page: number; tab: string;
+  date: string; from: string; barnId?: string; flockId?: string; search: string; page: number; tab: string; sort?: TableSort;
 }, db = database()) {
   await requireRole(headers, farmReaders, db);
   const [barnRows, flockRows, snapshot] = await Promise.all([
@@ -303,8 +306,8 @@ export async function populationPage(headers: Headers, input: {
   let total: number;
   const matches = (item: { name: string; code: string }) =>
     `${item.code} ${item.name}`.toLocaleLowerCase("id-ID").includes(input.search.toLocaleLowerCase("id-ID"));
-  const barnTable = barnRows.filter(matches);
-  const flockTable = flockRows.filter((flock) => matches(flock)
+  let barnTable = barnRows.filter(matches);
+  let flockTable = flockRows.filter((flock) => matches(flock)
     && (!input.flockId || input.flockId === flock.id)
     && (!input.barnId || snapshot.placements.get(flock.id)?.barnId === input.barnId));
   if (input.tab === "mutasi" || input.tab === "riwayat") {
@@ -313,15 +316,46 @@ export async function populationPage(headers: Headers, input: {
       .innerJoin(flocks, eq(flocks.id, populationMovements.flockId)).where(query);
     total = result.total;
     const page = Math.min(input.page, Math.max(1, Math.ceil(total / pageSize)));
-    history = await movements.orderBy(desc(farmEvents.businessDate), desc(farmEventOrder)).limit(pageSize).offset((page - 1) * pageSize);
+    const sort = await tableOrder(db, input.sort, {
+      date: { expression: farmEvents.businessDate }, flock: textOrder(flocks.name), kind: labelOrder(populationMovements.kind, movementLabels),
+      count: { expression: populationMovements.count }, source: textOrder(source.name), target: textOrder(destination.name),
+      note: textOrder(sql`nullif(${farmEvents.note}, '')`),
+      ...(input.tab === "riwayat" ? {
+        actor: textOrder(user.name), recorded: { expression: farmEvents.recordedAt },
+        status: textOrder(sql`case when ${reversal.id} is null then 'Tercatat' else 'Dibatalkan' end`),
+      } : {}),
+    });
+    history = await movements.orderBy(...sort, desc(farmEvents.businessDate), desc(farmEventOrder), farmEvents.id)
+      .limit(pageSize).offset((page - 1) * pageSize);
   } else {
     total = input.tab === "kandang" ? barnTable.length : flockTable.length;
+    const sort = input.sort;
+    if (sort && input.tab === "kandang") {
+      const selectors: Record<string, (row: typeof barns.$inferSelect) => SortValue> = {
+        code: (row) => row.code, name: (row) => row.name, location: (row) => row.location || null,
+        status: (row) => row.active ? "Aktif" : "Nonaktif",
+      };
+      if (Object.hasOwn(selectors, sort.column)) barnTable = sortTableRows(barnTable, sort.direction, selectors[sort.column]);
+    }
+    if (sort && input.tab === "kelompok") {
+      const barnNames = new Map(barnRows.map(({ id, name }) => [id, name]));
+      const placement = (row: typeof flocks.$inferSelect) => snapshot.placements.get(row.id);
+      const selectors: Record<string, (row: typeof flocks.$inferSelect) => SortValue> = {
+        name: (row) => row.name,
+        barn: (row) => { const barnId = placement(row)?.barnId; return barnId ? barnNames.get(barnId) : null; },
+        alive: (row) => placement(row)?.alive,
+        initial: (row) => row.initialHenHoused, placed: (row) => row.placedOn,
+        age: (row) => row.initialAgeDays, origin: (row) => row.origin,
+        status: (row) => flockPlacementStatus(placement(row)?.alive),
+      };
+      if (Object.hasOwn(selectors, sort.column)) flockTable = sortTableRows(flockTable, sort.direction, selectors[sort.column]);
+    }
   }
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const current = Math.min(input.page, pages);
   const start = (current - 1) * pageSize;
   return {
     barns: barnTable.slice(start, start + pageSize), flocks: flockTable.slice(start, start + pageSize),
-    barnOptions: barnRows, flockOptions: flockRows, history, snapshot, current, pages, total,
+    barnOptions: barnRows, flockOptions: flockRows, history, snapshot, current, pages, total, pageSize,
   };
 }

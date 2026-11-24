@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { DataColumn, SortValue } from "./table-sort";
 import { businessDateSchema, uuidSchema } from "../validation";
 import { businessDate, shiftBusinessDate } from "../format";
 
@@ -27,7 +28,37 @@ export const reportQuerySchema = z.object({
 });
 
 export type ReportInput = z.infer<typeof reportQuerySchema>;
-export type ReportSection = { title: string; columns: string[]; rows: string[][] };
+export type ReportSection = {
+  title: string;
+  columns: string[];
+  rows: string[][];
+  tableColumns: DataColumn[];
+  rowMeta: { id: string; values: SortValue[] }[];
+};
+
+type ReportCell = string | { value: SortValue; text: string };
+
+export function reportCell(value: SortValue, text: string): ReportCell {
+  return { value, text };
+}
+
+export function reportSection(title: string, tableColumns: DataColumn[], rows: { id: string; cells: ReportCell[] }[]): ReportSection {
+  return {
+    title, tableColumns,
+    columns: tableColumns.map(({ label }) => label),
+    rows: rows.map(({ cells }) => cells.map((cell) => typeof cell === "string" ? cell : cell.text)),
+    rowMeta: rows.map(({ id, cells }) => ({ id, values: cells.map((cell) => typeof cell === "string" ? cell : cell.value) })),
+  };
+}
+
+export function selectReportRows(section: ReportSection, matches: (row: string[]) => boolean, limit: number) {
+  const indices = section.rows.flatMap((row, index) => matches(row) ? [index] : []);
+  const visible = indices.slice(0, limit);
+  return {
+    section: { ...section, rows: visible.map((index) => section.rows[index]), rowMeta: visible.map((index) => section.rowMeta[index]) },
+    truncated: indices.length > limit,
+  };
+}
 export type ReportData = {
   family: ReportFamily;
   title: string;

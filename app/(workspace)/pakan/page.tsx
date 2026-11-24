@@ -1,3 +1,4 @@
+import { tableColumn as col } from "@/components/shared/data-table";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Boxes } from "lucide-react";
@@ -5,7 +6,7 @@ import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
 import { FeedAdjustmentForm, FeedClosingForm, FeedIssueForm, FeedMixForm, FeedOpeningForm, FeedPurchaseForm, ProductForm } from "@/components/inventory/entry-forms";
-import { LedgerTable, type LedgerRow } from "@/components/inventory/ledger-table";
+import { LedgerTable, ledgerCell, type LedgerRow } from "@/components/inventory/ledger-table";
 import { EmptyState, MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -68,7 +69,7 @@ async function FeedContent({ searchParams }: Props) {
 function ProductSection({ data, query, administrator }: { data: View; query: Query; administrator: boolean }) {
   const rows = data.products.map(({ id, code, name, kind, active }): LedgerRow => ({
     id, filter: kind, search: `${code} ${name} ${feedLabel[kind]}`,
-    cells: [code, name, feedLabel[kind], <Badge key="status" variant={active ? "secondary" : "outline"}>{active ? "Aktif" : "Nonaktif"}</Badge>],
+    cells: [code, name, feedLabel[kind], ledgerCell(active ? "Aktif" : "Nonaktif", <Badge variant={active ? "secondary" : "outline"}>{active ? "Aktif" : "Nonaktif"}</Badge>)],
   }));
   return <>
     <ModuleHeader title={productsPage.label} description="Daftar bahan pakan, pakan siap pakai, dan hasil campuran yang dapat dipilih saat pencatatan." icon={Boxes}
@@ -78,7 +79,7 @@ function ProductSection({ data, query, administrator }: { data: View; query: Que
         value={data.products.filter(({ active, kind }) => active && kind === value).length} detail="Jenis aktif" />)}
     </section>
     <LedgerTable path={path} tab={productsPage.value} query={query} label="Daftar jenis pakan" rows={rows}
-      columnLabels={["Kode", "Nama pakan", "Jenis", "Status"]} choices={feedTypes} filterLabel="Jenis" showPeriod={false}
+      columns={[col("code", "Kode"), col("name", "Nama pakan", "wrap"), col("category", "Jenis"), col("status", "Status")]} choices={feedTypes} filterLabel="Jenis" showPeriod={false}
       empty={!rows.length ? <EmptyState title="Belum ada jenis pakan" description={administrator
         ? "Gunakan Tambah jenis pakan agar pakan bisa dipilih saat pencatatan."
         : "Hubungi Administrator untuk mendaftarkan jenis pakan."} /> : undefined} />
@@ -115,10 +116,10 @@ function ActivitySection({ data, query, role, forms, kind }: SectionProps & { ki
       id: event.id,
       filter: event.moves.map(({ productId }) => productId).join(","),
       search: [formatDate(event.day), activity.label, product, detail, event.note].join(" "),
-      cells: [formatDate(event.day), activity.label, product, mass(grams),
-        <div key="detail"><span>{detail}</span>{event.note && <p className="text-sm text-muted-foreground">{event.note}</p>}</div>,
-        ...(role === "abk" ? [] : [cost]),
-        <Badge key="status" variant={event.reversed ? "outline" : "secondary"}>{event.reversed ? "Dibatalkan" : "Tercatat"}</Badge>],
+      cells: [ledgerCell(event.day, formatDate(event.day)), activity.label, product, ledgerCell(grams, mass(grams)),
+        ledgerCell(detail === "—" ? event.note || null : detail, <div><span>{detail}</span>{event.note && <p className="text-sm text-muted-foreground">{event.note}</p>}</div>),
+        ...(role === "abk" ? [] : [ledgerCell(total ?? (event.mix ? event.cost : undefined), cost)]),
+        ledgerCell(event.reversed ? "Dibatalkan" : "Tercatat", <Badge variant={event.reversed ? "outline" : "secondary"}>{event.reversed ? "Dibatalkan" : "Tercatat"}</Badge>)],
     });
   }
 
@@ -136,7 +137,7 @@ function ActivitySection({ data, query, role, forms, kind }: SectionProps & { ki
       <MetricCard label="Hasil campuran" value={mass(totals.campuran)} detail="Periode terpilih" />
     </section>
     <LedgerTable path={path} tab={activityPage.value} label="Riwayat aktivitas pakan" query={query} rows={rows}
-      columnLabels={["Tanggal", "Aktivitas", "Pakan", "Berat", "Rincian", ...(role === "abk" ? [] : ["Biaya"]), "Status"]}
+      columns={[col("date", "Tanggal", "date"), col("activity", "Aktivitas"), col("product", "Pakan", "wrap"), col("weight", "Berat", "number"), col("detail", "Rincian", "wrap"), ...(role === "abk" ? [] : [col("cost", "Biaya", "number")]), col("status", "Status")]}
       choices={forms.products} filterLabel="Pakan" kind={{ value: kind, choices: [...activityKinds] }}
       empty={forms.products.length === 0 ? <EmptyState title="Belum ada jenis pakan" description={administrator
         ? "Daftarkan jenis pakan sebelum mencatat pembelian, pengiriman, atau campuran."
@@ -190,7 +191,7 @@ function StockSection({ data, query, role, forms, view }: SectionProps & { view:
         </nav>
       </div>
       <LedgerTable path={path} tab={view} query={query} label={table.label} rows={table.rows}
-        columnLabels={table.columns} choices={forms.products} filterLabel="Pakan"
+        columns={table.columns} choices={forms.products} filterLabel="Pakan"
         empty={data.products.length === 0 ? <EmptyState title="Belum ada jenis pakan" description={administrator
           ? "Daftarkan jenis pakan terlebih dahulu agar stoknya bisa dicatat."
           : "Hubungi Administrator untuk mendaftarkan jenis pakan."}
@@ -218,19 +219,19 @@ function stockRows(data: View, day: string, role: Role, forms: FeedFormOptions) 
       return {
         id: `${item.id}:${row.barnId}`, search: `${item.code} ${item.name} ${barn?.name ?? "Gudang"}`, filter: item.id,
         cells: [
-          <div key="stock-item" className="min-w-32 space-y-1">
+          ledgerCell(`${item.code} ${item.name} ${barn?.name ?? "Gudang"}`, <div className="min-w-32 space-y-1">
             <p>{item.code} · {item.name}</p>
             <p className="text-sm text-muted-foreground">{barn?.name ?? "Gudang"}</p>
             {status && <Badge variant={missing || stale ? "outline" : "secondary"}>{status}</Badge>}
-            {canMeasure && <div className="pt-1"><FeedClosingForm {...forms} selection={{ productId: item.id, barnId: barn.id }} /></div>}
-          </div>,
-          missing || stale ? "—" : mass(row.grams),
-          ...(includeMoney ? [row.value === undefined || missing || stale ? "—" : formatIDR(row.value)] : []),
+          </div>),
+          ledgerCell(missing || stale ? null : row.grams, missing || stale ? "—" : mass(row.grams)),
+          ...(includeMoney ? [ledgerCell(missing || stale ? null : row.value, row.value === undefined || missing || stale ? "—" : formatIDR(row.value))] : []),
         ],
+        actions: canMeasure ? <FeedClosingForm {...forms} selection={{ productId: item.id, barnId: barn.id }} /> : undefined,
       };
     });
   });
-  return { label: "Posisi stok", rows, columns: ["Pakan dan lokasi", "Berat tersedia", ...(includeMoney ? ["Nilai persediaan"] : [])] };
+  return { label: "Posisi stok", rows, columns: [col("location", "Pakan dan lokasi", "wrap"), col("weight", "Berat tersedia", "number"), ...(includeMoney ? [col("value", "Nilai persediaan", "number")] : [])] };
 }
 
 function closingHistory(data: View, from: string) {
@@ -239,15 +240,16 @@ function closingHistory(data: View, from: string) {
       .flatMap((event) => event.moves).filter((move) => move.barnId === row.barnId && move.productId === row.productId);
     const product = data.products.find(({ id }) => id === row.productId)?.name ?? "Pakan";
     const barn = data.barns.find(({ id }) => id === row.barnId)?.name ?? "—";
+    const wasted = -movements.filter(({ kind }) => kind === "waste").reduce((sum, move) => sum + move.grams, 0);
+    const returned = -movements.filter(({ kind }) => kind === "return").reduce((sum, move) => sum + move.grams, 0);
     return {
       id: `${row.day}:${row.barnId}:${row.productId}`, filter: row.productId, search: `${formatDate(row.day)} ${product} ${barn}`,
-      cells: [formatDate(row.day), product, barn, row.closing === null ? "Belum diukur" : mass(row.closing),
-        mass(-movements.filter(({ kind }) => kind === "waste").reduce((sum, move) => sum + move.grams, 0)),
-        mass(-movements.filter(({ kind }) => kind === "return").reduce((sum, move) => sum + move.grams, 0)),
-        row.stale ? "Perlu verifikasi ulang" : row.consumed === null ? "Data belum lengkap" : mass(row.consumed)],
+      cells: [ledgerCell(row.day, formatDate(row.day)), product, barn, ledgerCell(row.closing, row.closing === null ? "Belum diukur" : mass(row.closing)),
+        ledgerCell(wasted, mass(wasted)), ledgerCell(returned, mass(returned)),
+        ledgerCell(row.stale ? null : row.consumed, row.stale ? "Perlu verifikasi ulang" : row.consumed === null ? "Data belum lengkap" : mass(row.consumed))],
     };
   });
-  return { label: "Riwayat sisa harian", rows, columns: ["Tanggal", "Pakan", "Kandang", "Sisa terukur", "Terbuang", "Kembali ke gudang", "Dikonsumsi"] };
+  return { label: "Riwayat sisa harian", rows, columns: [col("date", "Tanggal", "date"), col("product", "Pakan", "wrap"), col("barn", "Kandang", "wrap"), col("closing", "Sisa terukur", "number"), col("waste", "Terbuang", "number"), col("returned", "Kembali ke gudang", "number"), col("consumed", "Dikonsumsi", "number")] };
 }
 
 function adjustmentHistory(data: View) {
@@ -258,9 +260,9 @@ function adjustmentHistory(data: View) {
     const type = event.kind === "feed_opening" ? "Saldo awal" : "Penyesuaian";
     return {
       id: event.id, filter: move?.productId, search: `${formatDate(event.day)} ${product} ${location} ${type} ${event.note}`,
-      cells: [formatDate(event.day), type, product, location, move ? mass(move.grams) : "—", event.note || "—",
-        <Badge key="status" variant={event.reversed ? "outline" : "secondary"}>{event.reversed ? "Dibatalkan" : "Tercatat"}</Badge>],
+      cells: [ledgerCell(event.day, formatDate(event.day)), type, product, location, ledgerCell(move?.grams, move ? mass(move.grams) : "—"), ledgerCell(event.note || null, event.note || "—"),
+        ledgerCell(event.reversed ? "Dibatalkan" : "Tercatat", <Badge variant={event.reversed ? "outline" : "secondary"}>{event.reversed ? "Dibatalkan" : "Tercatat"}</Badge>)],
     };
   });
-  return { label: "Riwayat saldo awal dan penyesuaian", rows, columns: ["Tanggal", "Jenis", "Pakan", "Lokasi", "Berat", "Catatan", "Status"] };
+  return { label: "Riwayat saldo awal dan penyesuaian", rows, columns: [col("date", "Tanggal", "date"), col("type", "Jenis"), col("product", "Pakan", "wrap"), col("location", "Lokasi", "wrap"), col("weight", "Berat", "number"), col("note", "Catatan", "wrap"), col("status", "Status")] };
 }

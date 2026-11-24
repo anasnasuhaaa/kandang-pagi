@@ -1,10 +1,11 @@
+import { tableColumn as col, type DataColumn } from "@/components/shared/data-table";
 import type { Metadata } from "next";
 import { Activity } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
 import { EndQuarantineForm, IncidentForm, IncidentStatusForm, QuarantineForm, VaccineExecutionForm, VaccinePlanForm } from "@/components/health/entry-forms";
-import { LedgerTable, type LedgerRow } from "@/components/inventory/ledger-table";
+import { LedgerTable, ledgerCell, type LedgerRow } from "@/components/inventory/ledger-table";
 import { ModuleTabs } from "@/components/shared/module-tabs";
 import { MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { Badge } from "@/components/ui/badge";
@@ -58,47 +59,48 @@ async function HealthContent({ searchParams }: Props) {
       <MetricCard label="Karantina aktif" value={data.quarantine.filter(({ active }) => active).length} detail={formatDate(query.to)} />
     </section>
     <ModuleTabs path={path} tab={tab} tabs={tabs}><LedgerTable path={path} tab={tab}
-      label={tabs.find((item) => item.value === tab)!.label} rows={rows} columnLabels={columns} query={query} choices={filterOptions} /></ModuleTabs>
+      label={tabs.find((item) => item.value === tab)!.label} rows={rows} columns={columns} query={query} choices={filterOptions} /></ModuleTabs>
   </>;
 }
 
-function healthRows(view: View, tab: z.infer<typeof tabSchema>, from: string, operator: boolean, today: string): { rows: LedgerRow[]; columns: string[] } {
+function healthRows(view: View, tab: z.infer<typeof tabSchema>, from: string, operator: boolean, today: string): { rows: LedgerRow[]; columns: DataColumn[] } {
   const barn = (id?: string) => view.barns.find((entry) => entry.id === id)?.name ?? "—";
   const flock = (id: string | null) => id ? view.flocks.find((entry) => entry.id === id)?.name ?? "—" : "Seluruh kandang";
   const staff = (id: string) => view.people.find((entry) => entry.id === id)?.name ?? "—";
   if (tab === "kejadian") return {
-    columns: ["Tanggal", "Kejadian", "Kandang dan kelompok", "Pengamatan", "Tindakan", "Petugas", "Status", ...(operator ? ["Tindakan lanjutan"] : [])],
+    columns: [col("date", "Tanggal", "date"), col("incident", "Kejadian", "wrap"), col("location", "Kandang dan kelompok", "wrap"), col("observations", "Pengamatan", "wrap"), col("treatment", "Tindakan", "wrap"), col("staff", "Petugas"), col("status", "Status")],
     rows: view.incidents.filter(({ day, data }) => day >= from || data.status !== "resolved").map(({ day, data, note }) => ({
       id: data.id, filter: data.status, search: [data.incident, barn(data.barnId), flock(data.flockId), data.observations, note].join(" "),
-      cells: [formatDate(day), data.incident, `${barn(data.barnId)} · ${flock(data.flockId)}`,
-        data.observations, [data.treatment, note].filter(Boolean).join(" · ") || "—", staff(data.responsibleId), incidentStatus[data.status],
-        ...(operator ? [<IncidentStatusForm key={data.id} id={data.id} status={data.status} />] : [])],
+      cells: [ledgerCell(day, formatDate(day)), data.incident, `${barn(data.barnId)} · ${flock(data.flockId)}`,
+        data.observations, ledgerCell(data.treatment || note || null, [data.treatment, note].filter(Boolean).join(" · ") || "—"), staff(data.responsibleId), incidentStatus[data.status]],
+      actions: operator ? <IncidentStatusForm id={data.id} status={data.status} /> : undefined,
     })),
   };
   if (tab === "jadwal") return {
-    columns: ["Jadwal", "Vaksin", "Kandang", "Kelompok", "Status", "Catatan"],
+    columns: [col("due", "Jadwal", "date"), col("vaccine", "Vaksin", "wrap"), col("barn", "Kandang"), col("flock", "Kelompok"), col("status", "Status"), col("note", "Catatan", "wrap")],
     rows: view.schedules.filter((plan) => plan.dueDate >= from || plan.status !== "done").map((plan) => ({
       id: plan.id, filter: plan.status, search: [plan.vaccineName, barn(plan.barnId), flock(plan.flockId), plan.note].join(" "),
-      cells: [formatDate(plan.dueDate), plan.vaccineName, barn(plan.barnId), flock(plan.flockId),
-        <Badge key={plan.id} variant={plan.status === "overdue" ? "destructive" : "secondary"}>{scheduleStatus[plan.status]}</Badge>, plan.note || "—"],
+      cells: [ledgerCell(plan.dueDate, formatDate(plan.dueDate)), plan.vaccineName, barn(plan.barnId), flock(plan.flockId),
+        ledgerCell(scheduleStatus[plan.status], <Badge variant={plan.status === "overdue" ? "destructive" : "secondary"}>{scheduleStatus[plan.status]}</Badge>), ledgerCell(plan.note || null, plan.note || "—")],
     })),
   };
   if (tab === "pelaksanaan") return {
-    columns: ["Tanggal", "Vaksin", "Kandang", "Petugas", "Hasil", "Catatan"],
+    columns: [col("date", "Tanggal", "date"), col("vaccine", "Vaksin", "wrap"), col("barn", "Kandang"), col("staff", "Petugas"), col("outcome", "Hasil", "wrap"), col("note", "Catatan", "wrap")],
     rows: view.runs.filter(({ day }) => day >= from).map(({ day, data, note }) => {
       const plan = view.schedules.find((row) => row.id === data.scheduleId);
       return {
         id: data.id, filter: plan?.barnId, search: [plan?.vaccineName, barn(plan?.barnId), staff(data.performerId), data.outcome, note].join(" "),
-        cells: [formatDate(day), plan?.vaccineName ?? "—", barn(plan?.barnId), staff(data.performerId), data.outcome, note || "—"],
+        cells: [ledgerCell(day, formatDate(day)), ledgerCell(plan?.vaccineName, plan?.vaccineName ?? "—"), barn(plan?.barnId), staff(data.performerId), data.outcome, ledgerCell(note || null, note || "—")],
       };
     }),
   };
   return {
-    columns: ["Mulai", "Berakhir", "Kandang", "Kelompok", "Alasan", "Status", ...(operator ? ["Tindakan"] : [])],
+    columns: [col("started", "Mulai", "date"), col("ended", "Berakhir", "date"), col("barn", "Kandang"), col("flock", "Kelompok"), col("reason", "Alasan", "wrap"), col("status", "Status")],
     rows: view.quarantine.filter(({ startedOn, endedOn }) => startedOn >= from || !endedOn || endedOn >= from).map((row) => ({
       id: row.id, filter: row.barnId, search: [barn(row.barnId), flock(row.flockId), row.reason].join(" "),
-      cells: [formatDate(row.startedOn), row.endedOn ? formatDate(row.endedOn) : "—", barn(row.barnId), flock(row.flockId), row.reason,
-        row.active ? "Aktif" : "Selesai", ...(operator ? [row.endedOn ? "—" : <EndQuarantineForm key={row.id} id={row.id} today={today} />] : [])],
+      cells: [ledgerCell(row.startedOn, formatDate(row.startedOn)), ledgerCell(row.endedOn, row.endedOn ? formatDate(row.endedOn) : "—"), barn(row.barnId), flock(row.flockId), row.reason,
+        row.active ? "Aktif" : "Selesai"],
+      actions: operator && !row.endedOn ? <EndQuarantineForm id={row.id} today={today} /> : undefined,
     })),
   };
 }

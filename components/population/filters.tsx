@@ -6,6 +6,7 @@ import { z } from "zod";
 import { DateField } from "@/components/shared/date-field";
 import { ChoiceField, FormError, TextField } from "@/components/shared/form-fields";
 import { Button } from "@/components/ui/button";
+import { sortParams, type TableSort } from "@/lib/domain/table-sort";
 import { shiftBusinessDate } from "@/lib/format";
 import { businessDateSchema } from "@/lib/validation";
 import { periodSchema } from "@/lib/domain/population-input";
@@ -20,10 +21,10 @@ const filterSchema = periodSchema.extend({
 });
 
 export function PopulationFilters({
-  path, tab, from, to, search, barnId, flockId, barns, flocks, today,
+  path, tab, from, to, search, barnId, flockId, barns, flocks, today, sort,
 }: {
   path: string; tab?: "kandang" | "kelompok" | "mutasi" | "riwayat"; from: string; to: string; search?: string;
-  barnId?: string; flockId?: string; barns: Choice[]; flocks: Choice[]; today: string;
+  barnId?: string; flockId?: string; barns: Choice[]; flocks: Choice[]; today: string; sort?: TableSort;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -37,7 +38,7 @@ export function PopulationFilters({
     }
     setError("");
     const query = new URLSearchParams();
-    for (const [key, value] of Object.entries(values.data)) if (value) query.set(key, value);
+    for (const [key, value] of Object.entries({ ...values.data, ...sortParams(sort) })) if (value) query.set(key, value);
     router.push(`${path}?${query}`, { scroll: false });
   }
 

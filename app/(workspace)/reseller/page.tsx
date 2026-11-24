@@ -1,9 +1,10 @@
+import { tableColumn as col, type DataColumn } from "@/components/shared/data-table";
 import type { Metadata } from "next";
 import { Store } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
-import { LedgerTable, type LedgerRow } from "@/components/inventory/ledger-table";
+import { LedgerTable, ledgerCell, type LedgerRow } from "@/components/inventory/ledger-table";
 import { CancelResellerForm, ResellerCashForm, ResellerStockAdjustmentForm, ResellerTradeForm, UnitDefinitionForm } from "@/components/reseller/entry-forms";
 import { MetricCard, ModuleHeader, ModuleSkeleton } from "@/components/shared/module";
 import { ModuleTabs } from "@/components/shared/module-tabs";
@@ -61,29 +62,29 @@ async function ResellerContent({ searchParams }: Props) {
     <ModuleTabs path={path} tab={tab} tabs={tabs}>
       <div className="space-y-4">
         {tab === "stok" && <LedgerTable path={path} tab={tab} label="Saldo stok per kategori" query={{ ...query, page: 1 }}
-          columnLabels={["Kategori", "Saldo stok"]} choices={choices}
-          rows={categories.map((value) => ({ id: value, search: category(value), filter: value, cells: [category(value), pieces(data.balances[value])] }))} />}
+          columns={[col("stock-category", "Kategori"), col("stock-balance", "Saldo stok", "number")]} choices={choices}
+          rows={categories.map((value) => ({ id: value, search: category(value), filter: value, cells: [category(value), ledgerCell(data.balances[value], pieces(data.balances[value]))] }))} />}
         <LedgerTable path={path} tab={tab} label={tab === "stok" ? "Pergerakan stok" : tabs.find((item) => item.value === tab)!.label}
-          rows={rows.rows} columnLabels={rows.columns} query={query} choices={choices} />
+          rows={rows.rows} columns={rows.columns} query={query} choices={choices} />
       </div>
     </ModuleTabs>
   </>;
 }
 
-function resellerRows(data: View, tab: z.infer<typeof tabSchema>, today: string): { rows: LedgerRow[]; columns: string[] } {
+function resellerRows(data: View, tab: z.infer<typeof tabSchema>, today: string): { rows: LedgerRow[]; columns: DataColumn[] } {
   if (tab === "satuan") {
     const latest = new Set<string>();
     return {
-      columns: ["Berlaku sejak", "Kode", "Satuan", "Butir per kemasan", "Versi", "Status", "Tindakan"],
+      columns: [col("effective", "Berlaku sejak", "date"), col("code", "Kode"), col("unit", "Satuan", "wrap"), col("factor", "Butir per kemasan", "number"), col("revision", "Versi", "number"), col("status", "Status")],
       rows: data.units.map((unit) => {
         const current = !latest.has(unit.code);
         latest.add(unit.code);
         const status = !current ? "past" : unit.active ? "active" : "inactive";
         return {
           id: unit.id, filter: status, search: `${unit.code} ${unit.name}`,
-          cells: [formatDate(unit.effectiveDate), unit.code, unit.name, pieces(unit.piecesPerUnit), formatQuantity(unit.revision),
-            status === "past" ? "Versi lama" : status === "active" ? "Aktif" : "Nonaktif",
-            current ? <UnitDefinitionForm key={unit.id} today={today} unit={unit} /> : "—"],
+          cells: [ledgerCell(unit.effectiveDate, formatDate(unit.effectiveDate)), unit.code, unit.name, ledgerCell(unit.piecesPerUnit, pieces(unit.piecesPerUnit)), ledgerCell(unit.revision, formatQuantity(unit.revision)),
+            status === "past" ? "Versi lama" : status === "active" ? "Aktif" : "Nonaktif"],
+          actions: current ? <UnitDefinitionForm today={today} unit={unit} /> : undefined,
         };
       }),
     };
@@ -101,16 +102,23 @@ function resellerRows(data: View, tab: z.infer<typeof tabSchema>, today: string)
       categoryName, pieces(stock?.deltaPieces ?? 0), converted,
       ...(tab !== "stok" ? [cash ? formatIDR(cash.deltaIdr) : formatIDR(BigInt(0))] : []),
     ];
+    const convertedValue = stock?.unit === "packaging" ? { unit: "kemasan", amount: stock.unitCount ?? 0 } :
+      stock?.unit === "kg" && stock.actualGrams ? { unit: "kg", amount: stock.actualGrams } :
+        stock ? { unit: "butir", amount: stock.deltaPieces } : null;
+    const values = tab === "kas" ? [ledgerCell(cash?.category, detail[0]), ledgerCell(cash?.deltaIdr, detail[1])] :
+      [categoryName, ledgerCell(stock?.deltaPieces, detail[1]), ledgerCell(convertedValue, converted),
+        ...(tab !== "stok" ? [ledgerCell(cash?.deltaIdr ?? BigInt(0), detail[3])] : [])];
     return {
       id: row.id, filter: tab === "kas" ? cash?.direction : stock?.category,
       search: [formatDate(row.day), label, categoryName, row.note, ...detail].join(" "),
-      cells: [formatDate(row.day), label, ...detail, row.note || "—",
-        <Badge key={row.id} variant={row.active ? "secondary" : "outline"}>{row.active ? "Tercatat" : "Dibatalkan"}</Badge>,
-        row.active && !row.reversesId ? <CancelResellerForm key={row.id} id={row.id} /> : "—"],
+      cells: [ledgerCell(row.day, formatDate(row.day)), label, ...values, ledgerCell(row.note || null, row.note || "—"),
+        ledgerCell(row.active ? "Tercatat" : "Dibatalkan", <Badge variant={row.active ? "secondary" : "outline"}>{row.active ? "Tercatat" : "Dibatalkan"}</Badge>)],
+      actions: row.active && !row.reversesId ? <CancelResellerForm id={row.id} /> : undefined,
     };
   });
   return { rows, columns: [
-    "Tanggal", "Kegiatan", ...(tab === "kas" ? ["Kategori", "Jumlah"] : ["Kategori", "Perubahan stok", "Satuan", ...(tab === "stok" ? [] : ["Kas terkait"])]),
-    "Catatan", "Status", "Tindakan",
+    col("date", "Tanggal", "date"), col("event", "Kegiatan"), col("category", "Kategori", "wrap"),
+    ...(tab === "kas" ? [col("amount", "Jumlah", "number")] : [col("pieces", "Perubahan stok", "number"), col("unit", "Satuan"), ...(tab === "stok" ? [] : [col("cash", "Kas terkait", "number")])]),
+    col("note", "Catatan", "wrap"), col("status", "Status"),
   ] };
 }

@@ -1,45 +1,62 @@
 import type { ReactNode } from "react";
-import { DataTable, DataTableRow } from "@/components/shared/data-table";
+import { actionColumn, DataCell, DataTable, DataTableRow, type DataColumn } from "@/components/shared/data-table";
 import { EmptyState } from "@/components/shared/module";
 import { PageLinks } from "@/components/shared/page-links";
-import { TableCell } from "@/components/ui/table";
+import { sortParams, sortTableRows, type SortValue, type TableSort } from "@/lib/domain/table-sort";
 import { LedgerFilters, type LedgerKindFilter } from "./ledger-filters";
 
-export type LedgerRow = { id: string; cells: ReactNode[]; search: string; filter?: string };
+export type LedgerCell = string | { value: SortValue; content: ReactNode };
+export type LedgerRow = { id: string; cells: LedgerCell[]; search: string; filter?: string; actions?: ReactNode };
+
+export function ledgerCell(value: SortValue, content: ReactNode): LedgerCell {
+  return { value, content };
+}
 
 export function LedgerTable({
-  path, label, tab, rows, columnLabels, query, choices = [], filterLabel, kind, showPeriod = true, empty,
+  path, label, tab, rows, columns, query, choices = [], filterLabel, kind, showPeriod = true, empty, showFilters = true,
 }: {
-  path: string; label: string; tab: string; rows: LedgerRow[]; columnLabels: string[];
-  query: { from: string; to: string; search: string; page: number; filter: string };
+  path: string; label: string; tab: string; rows: LedgerRow[]; columns: DataColumn[];
+  query: { from: string; to: string; search: string; page: number; filter: string; sort?: TableSort };
   choices?: { value: string; label: string }[];
   filterLabel?: string;
   kind?: LedgerKindFilter;
   showPeriod?: boolean;
+  showFilters?: boolean;
   empty?: ReactNode;
 }) {
   const pageSize = 12;
   const needle = query.search.toLocaleLowerCase("id-ID");
   const matching = rows.filter((row) => row.search.toLocaleLowerCase("id-ID").includes(needle)
     && (!query.filter || row.filter?.split(",").includes(query.filter)));
-  const pages = Math.max(1, Math.ceil(matching.length / pageSize));
+  const columnIndex = columns.findIndex(({ key }) => key === query.sort?.column);
+  const sort = columnIndex >= 0 ? query.sort : undefined;
+  const ordered = sort ? sortTableRows(matching, sort.direction, ({ cells }) => {
+    const cell = cells[columnIndex];
+    return typeof cell === "string" ? cell : cell.value;
+  }) : matching;
+  const pages = Math.max(1, Math.ceil(ordered.length / pageSize));
   const current = Math.min(query.page, pages);
   const start = (current - 1) * pageSize;
+  const pageRows = ordered.slice(start, start + pageSize);
+  const hasActions = pageRows.some(({ actions }) => Boolean(actions));
+  const params = { tab, ...(showPeriod ? { mulai: query.from, akhir: query.to } : {}),
+    cari: query.search, filter: query.filter, ...(kind?.value ? { jenis: kind.value } : {}) };
   return (
-    <DataTable label={label} columns={columnLabels.map((name) => ({ key: name, label: name }))}
-      toolbar={<LedgerFilters key={`${tab}:${query.from}:${query.to}:${query.search}:${query.filter}:${kind?.value ?? ""}`}
+    <DataTable label={label} columns={hasActions ? [...columns, actionColumn] : columns}
+      sorting={{ current: sort, path, query: params }}
+      toolbar={showFilters && <LedgerFilters key={JSON.stringify(params)}
         path={path} tab={tab} query={query} choices={choices} filterLabel={filterLabel} kind={kind} showPeriod={showPeriod} />}
       empty={empty ?? <EmptyState title="Belum ada catatan" description={showPeriod
         ? "Catatan yang sesuai dengan periode dan pencarian akan tampil di sini."
         : "Catatan yang sesuai dengan pencarian dan filter akan tampil di sini."} />}
-      pagination={<PageLinks path={path} current={current} pages={pages}
-        query={{ tab, ...(showPeriod ? { mulai: query.from, akhir: query.to } : {}),
-          cari: query.search, filter: query.filter, ...(kind?.value ? { jenis: kind.value } : {}) }} />}>
-      {matching.length ? matching.slice(start, start + pageSize).map((row, index) => (
+      pagination={<PageLinks path={path} current={current} pages={pages} total={ordered.length}
+        query={{ ...params, ...sortParams(query.sort) }} />}>
+      {pageRows.length ? pageRows.map((row, index) => (
         <DataTableRow key={row.id} number={start + index + 1}>
           {row.cells.map((cell, index) => (
-            <TableCell key={columnLabels[index]} className={index === 0 ? "font-medium" : "max-w-60 whitespace-normal"}>{cell}</TableCell>
+            <DataCell key={columns[index].key} column={columns[index]}>{typeof cell === "string" ? cell : cell.content}</DataCell>
           ))}
+          {hasActions && <DataCell column={actionColumn}>{row.actions}</DataCell>}
         </DataTableRow>
       )) : undefined}
     </DataTable>

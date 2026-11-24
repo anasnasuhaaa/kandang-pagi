@@ -6,7 +6,11 @@ import {
   changePasswordSchema, changeRoleSchema, changeStatusSchema, completeLinkSchema,
   issueLinkSchema, newAccountSchema, profileSchema, themeSchema,
 } from "../../lib/account-validation";
-import type { Role } from "../../lib/roles";
+import { accountAuditLabels } from "../../lib/account-audit-labels";
+import type { TableSort } from "../../lib/domain/table-sort";
+import { accountPresentation } from "../../lib/status-presentation";
+import { labelOrder, tableOrder, textOrder } from "../services/table-order";
+import { roleLabels, type Role } from "../../lib/roles";
 import { ServiceError } from "../services/errors";
 import { lockScope, writeAudit } from "../services/transactions";
 import { authConfig, authIpHeader, createAuth } from "./config";
@@ -216,7 +220,7 @@ export async function changeOwnPassword(headers: Headers, raw: unknown, db = dat
   });
 }
 
-export async function listAccounts(headers: Headers, search: string, page: number, db = database()) {
+export async function listAccounts(headers: Headers, search: string, page: number, db = database(), sort?: TableSort) {
   await requireRole(headers, ["administrator"], db);
   const needle = search.trim().slice(0, 100).replace(/[\\%_]/g, "\\$&");
   const where = needle ? or(ilike(user.name, `%${needle}%`), ilike(user.email, `%${needle}%`)) : undefined;
@@ -224,23 +228,31 @@ export async function listAccounts(headers: Headers, search: string, page: numbe
   const [totals] = await db.select({ count: count() }).from(user).where(where);
   const pages = Math.max(1, Math.ceil(totals.count / perPage));
   const current = Math.max(1, Math.min(page, pages));
+  const order = await tableOrder(db, sort, {
+    name: textOrder(user.name), email: textOrder(user.email), role: labelOrder(user.role, roleLabels),
+    status: labelOrder(user.status, Object.fromEntries(Object.entries(accountPresentation).map(([key, value]) => [key, value.label]))),
+  });
   const rows = await db.select({
     id: user.id, name: user.name, email: user.email, role: user.role, status: user.status,
-  }).from(user).where(where).orderBy(desc(user.createdAt), user.id).limit(perPage).offset((current - 1) * perPage);
-  return { rows, pages, current, total: totals.count };
+  }).from(user).where(where).orderBy(...order, desc(user.createdAt), user.id).limit(perPage).offset((current - 1) * perPage);
+  return { rows, pages, current, total: totals.count, pageSize: perPage };
 }
 
-export async function listAccountAudit(headers: Headers, page: number, db = database()) {
+export async function listAccountAudit(headers: Headers, page: number, db = database(), sort?: TableSort) {
   await requireRole(headers, ["administrator"], db);
   const limit = 15;
   const where = and(eq(auditEvents.entity, "account"), isNull(auditEvents.spaceId));
   const [totals] = await db.select({ count: count() }).from(auditEvents).where(where);
   const pages = Math.max(1, Math.ceil(totals.count / limit));
   const current = Math.max(1, Math.min(page, pages));
+  const order = await tableOrder(db, sort, {
+    recorded: { expression: auditEvents.recordedAt }, actor: textOrder(user.name),
+    role: labelOrder(auditEvents.actorRole, roleLabels), event: labelOrder(auditEvents.action, accountAuditLabels),
+  });
   const rows = await db.select({
     id: auditEvents.id, action: auditEvents.action, actorName: user.name,
     actorRole: auditEvents.actorRole, at: auditEvents.recordedAt,
   }).from(auditEvents).innerJoin(user, eq(user.id, auditEvents.actorId)).where(where)
-    .orderBy(desc(auditEvents.recordedAt), desc(auditEvents.id)).limit(limit).offset((current - 1) * limit);
-  return { rows, pages, current };
+    .orderBy(...order, desc(auditEvents.recordedAt), desc(auditEvents.id)).limit(limit).offset((current - 1) * limit);
+  return { rows, pages, current, total: totals.count, pageSize: limit };
 }

@@ -1,5 +1,6 @@
+import { tableColumn as col } from "@/components/shared/data-table";
 import { headers } from "next/headers";
-import { LedgerTable } from "@/components/inventory/ledger-table";
+import { LedgerTable, ledgerCell } from "@/components/inventory/ledger-table";
 import { MetricCard } from "@/components/shared/module";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatIDR, formatQuantity } from "@/lib/format";
@@ -33,12 +34,18 @@ export async function CorrectionTable({ path, tab, query, administrator }: { pat
       proposed.method === "count" && typeof proposed.value === "number" ? `${formatQuantity(proposed.value)} ekor` :
       proposed.method === "closing" && typeof proposed.value === "number" ? `${formatQuantity(proposed.value / 1000)} kg` : "Pembatalan";
     const label = labels[kind] ?? "Catatan";
+    const originalValue = typeof before.amount === "string" ? { unit: "idr", amount: BigInt(before.amount) } :
+      typeof before.count === "number" ? { unit: "ekor", amount: before.count } :
+      typeof before.closing === "number" ? { unit: "kg", amount: before.closing } : "Catatan aktif";
+    const proposedValue = proposed.method === "amount" && typeof proposed.value === "string" ? { unit: "idr", amount: BigInt(proposed.value) } :
+      proposed.method === "count" && typeof proposed.value === "number" ? { unit: "ekor", amount: proposed.value } :
+      proposed.method === "closing" && typeof proposed.value === "number" ? { unit: "kg", amount: proposed.value } : "Pembatalan";
     return {
       id: request.id, filter: request.status, search: [label, requester, request.reason, request.reviewReason].join(" "),
-      cells: [formatDate(day), label, requester, original, after, request.reason,
-        <Badge key={request.id} variant={request.status === "rejected" ? "outline" : "secondary"}>{statuses[request.status]}</Badge>,
-        request.reviewReason ?? "—",
-        ...(administrator ? [request.status === "pending" ? <ReviewCorrectionForm key={request.id} id={request.id} /> : "—"] : [])],
+      cells: [ledgerCell(day, formatDate(day)), label, requester, ledgerCell(originalValue, original), ledgerCell(proposedValue, after), request.reason,
+        ledgerCell(statuses[request.status], <Badge variant={request.status === "rejected" ? "outline" : "secondary"}>{statuses[request.status]}</Badge>),
+        ledgerCell(request.reviewReason, request.reviewReason ?? "—")],
+      actions: administrator && request.status === "pending" ? <ReviewCorrectionForm id={request.id} /> : undefined,
     };
   });
   return <section className="space-y-4">
@@ -47,7 +54,7 @@ export async function CorrectionTable({ path, tab, query, administrator }: { pat
       {choices.length > 0 && <CorrectionForm choices={choices} direct={false} />}
     </div>
     <LedgerTable path={path} tab={tab} label="Permintaan koreksi" rows={rows} query={query}
-      columnLabels={["Tanggal catatan", "Kegiatan", "Pemohon", "Nilai awal", "Usulan", "Alasan", "Status", "Alasan tinjauan", ...(administrator ? ["Tindakan"] : [])]}
+      columns={[col("correction-date", "Tanggal catatan", "date"), col("correction-event", "Kegiatan"), col("requester", "Pemohon"), col("original", "Nilai awal", "number"), col("proposed", "Usulan", "number"), col("reason", "Alasan", "wrap"), col("correction-status", "Status"), col("review", "Alasan tinjauan", "wrap")]}
       choices={Object.entries(statuses).map(([value, label]) => ({ value, label }))} />
   </section>;
 }
