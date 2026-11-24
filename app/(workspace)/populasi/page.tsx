@@ -1,3 +1,4 @@
+import { RowActions } from "@/components/shared/row-actions";
 import type { Metadata } from "next";
 import { House } from "lucide-react";
 import { headers } from "next/headers";
@@ -101,7 +102,8 @@ function renderBarns(data: View, admin: boolean) {
       <TableCell className="font-medium">{barn.code}</TableCell>
       <TableCell>{barn.name}</TableCell><TableCell>{barn.location || "—"}</TableCell>
       <TableCell><Badge variant={barn.active ? "secondary" : "outline"}>{barn.active ? "Aktif" : "Nonaktif"}</Badge></TableCell>
-      {admin && <TableCell className="w-px text-right"><BarnStatusAction barnId={barn.id} name={barn.name} active={barn.active} /></TableCell>}
+      {admin && <TableCell className="w-px text-right"><RowActions actions={[{ id: "status", label: barn.active ? "Nonaktifkan" : "Aktifkan kembali",
+        icon: barn.active ? "cancel" : "check", destructive: barn.active, content: <BarnStatusAction barnId={barn.id} name={barn.name} active={barn.active} /> }]} /></TableCell>}
     </DataTableRow>
   ));
 }
@@ -138,7 +140,7 @@ function renderMoves(data: View, audit: boolean, admin: boolean) {
           {move.reversalReason && <span className="mt-1 block max-w-48 whitespace-normal text-xs text-muted-foreground">{move.reversalReason}</span>}
         </TableCell>
         {admin && <TableCell className="w-px text-right">{canCancel(move)
-          ? <CancelMovementAction eventId={move.id} /> : "—"}</TableCell>}
+          ? <RowActions actions={[{ id: "cancel", label: "Batalkan mutasi", icon: "cancel", destructive: true, content: <CancelMovementAction eventId={move.id} /> }]} /> : null}</TableCell>}
       </>}
     </DataTableRow>
   ));

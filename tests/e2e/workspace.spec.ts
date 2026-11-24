@@ -189,7 +189,17 @@ test("akun baru, aktivasi, reset, izin ABK, dan keluar", async ({ page, browser,
   await expect(operator.getByRole("heading", { name: "Profil dan tampilan" })).toBeVisible();
 
   await page.reload();
-  await page.getByRole("row").filter({ hasText: operatorEmail }).getByRole("button", { name: "Tautan reset" }).click();
+  const accountRow = page.getByRole("row").filter({ hasText: operatorEmail });
+  const accountTrigger = accountRow.getByRole("button", { name: "Buka tindakan" });
+  await expect(page.getByRole("row").filter({ hasText: adminEmail }).getByRole("button", { name: "Buka tindakan" })).toHaveCount(0);
+  await accountTrigger.press("Enter");
+  await page.getByRole("menuitem", { name: "Ubah peran" }).press("Enter");
+  await expect(page.getByRole("dialog", { name: "Ubah peran" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Ubah peran" })).toBeHidden();
+  await expect(accountTrigger).toBeFocused();
+  await accountTrigger.click();
+  await page.getByRole("menuitem", { name: "Tautan reset" }).click();
   const reset = page.getByRole("dialog", { name: "Tautan reset" });
   await reset.getByRole("button", { name: "Buat tautan baru" }).click();
   const resetLink = await reset.getByLabel("Tautan akses akun").inputValue();
@@ -342,11 +352,13 @@ test("jenis pakan, pembelian, pengiriman, sisa harian, dan produksi telur pada 3
   const stock = page.getByRole("table", { name: "Posisi stok" });
   const barnRow = stock.getByRole("row").filter({ hasText: "Kandang Produksi Uji" });
   await expect(barnRow.getByText("Belum diukur")).toBeVisible();
-  const measure = barnRow.getByRole("button", { name: "Catat sisa harian" });
+  const measure = barnRow.getByRole("button", { name: "Buka tindakan" });
+  await measure.scrollIntoViewIfNeeded();
   const bounds = await measure.boundingBox();
   expect(bounds).not.toBeNull();
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
   await measure.click();
+  await page.getByRole("menuitem", { name: "Catat sisa harian" }).click();
   const close = page.getByRole("dialog", { name: "Catat sisa harian" });
   await expect(close.getByRole("combobox", { name: "Pakan", exact: true })).toContainText("P-UJI · Pakan Uji");
   await expect(close.getByRole("combobox", { name: "Kandang", exact: true })).toContainText("Kandang Produksi Uji");
@@ -467,7 +479,9 @@ test("kesehatan, kas, dan persetujuan koreksi", async ({ page, browser }) => {
   await expect(operatorPage.getByRole("cell", { name: "Menunggu", exact: true })).toBeVisible();
 
   await page.goto("/pengaturan?tab=koreksi");
-  await page.getByRole("button", { name: "Tinjau permintaan" }).click();
+  await expect(operatorPage.getByRole("table", { name: "Permintaan koreksi" }).getByRole("button", { name: "Buka tindakan" })).toHaveCount(0);
+  await page.getByRole("row").filter({ hasText: "Jumlah dihitung ulang" }).getByRole("button", { name: "Buka tindakan" }).click();
+  await page.getByRole("menuitem", { name: "Tinjau permintaan" }).click();
   const review = page.getByRole("dialog", { name: "Tinjau permintaan" });
   await review.getByRole("combobox", { name: "Keputusan" }).click();
   await page.getByRole("option", { name: "Setujui", exact: true }).click();
@@ -515,7 +529,12 @@ test("kesehatan, kas, dan persetujuan koreksi", async ({ page, browser }) => {
   await cash.getByRole("button", { name: "Periksa dan lanjutkan" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Konfirmasi dan simpan" }).click();
   await expect(page.getByRole("cell", { name: "Pemasukan kas uji", exact: true })).toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: "Pemasukan kas uji" }).getByRole("button", { name: "Tambah bukti" })).toBeVisible();
+  await page.getByRole("row").filter({ hasText: "Pemasukan kas uji" }).getByRole("button", { name: "Buka tindakan" }).click();
+  await page.getByRole("menuitem", { name: "Tambah bukti" }).click();
+  const receipt = page.getByRole("dialog", { name: "Tambah bukti" });
+  await expect(receipt.getByLabel("Pilih foto bukti")).toBeVisible();
+  await expect(receipt.getByRole("button", { name: "Simpan bukti" })).toBeDisabled();
+  await receipt.getByRole("button", { name: "Tutup", exact: true }).click();
   await page.goto("/laporan?jenis=keuangan&transaksi=income&cari=Pemasukan%20kas%20uji");
   await expect(page.getByRole("heading", { name: "Laporan Keuangan farm" })).toBeVisible();
   await expect(page.getByRole("cell", { name: "Pemasukan kas uji", exact: true })).toBeVisible();

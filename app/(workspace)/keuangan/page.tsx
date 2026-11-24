@@ -1,3 +1,4 @@
+import { RowActions, type RowAction } from "@/components/shared/row-actions";
 import { tableColumn as col } from "@/components/shared/data-table";
 import type { Metadata } from "next";
 import { Wallet } from "lucide-react";
@@ -50,17 +51,26 @@ async function FinanceContent({ searchParams }: Props) {
   const rows = selected.map((row) => {
     const source = sources[row.origin] ?? "Transaksi kas";
     const editable = Boolean(administrator && row.effective && !row.reversesId);
+    const actions: RowAction[] = [];
+    const activeReceipt = Boolean(row.attachment);
+    if (!row.reversesId && activeReceipt) {
+      actions.push({ id: "receipt", label: "Lihat bukti dan riwayat", icon: "file",
+        content: <ReceiptDialog cashId={row.id} active uploadAllowed={false} mode="view" /> });
+    }
+    if (editable) {
+      actions.push({ id: "upload", label: activeReceipt ? "Ganti bukti" : "Tambah bukti", icon: activeReceipt ? "edit" : "add",
+        content: <ReceiptDialog cashId={row.id} active={activeReceipt} uploadAllowed mode="upload" /> });
+      actions.push({ id: "correct", label: "Koreksi catatan", icon: "history", destructive: row.origin !== "cash_manual",
+        content: <CorrectionForm direct selected={{
+          value: row.id, label: source, modes: row.origin === "cash_manual" ? ["cancel", "amount"] : ["cancel"],
+        }} /> });
+    }
     return {
       id: row.id, filter: row.direction, search: [row.category, source, row.note, formatIDR(row.delta)].join(" "),
       cells: [ledgerCell(row.date, formatDate(row.date)), row.category, source, ledgerCell(row.delta, formatIDR(row.delta)), ledgerCell(row.note || null, row.note || "—"),
         ledgerCell(row.effective ? cashLabels[row.direction] : "Dibatalkan", <Badge variant={row.effective ? "secondary" : "outline"}>{row.effective ? cashLabels[row.direction] : "Dibatalkan"}</Badge>),
         ledgerCell(row.attachment ? 1 : 0, row.attachment ? "Tersedia" : "Belum ada")],
-      actions: (!row.reversesId && (row.attachment || editable)) || editable ? <>
-        {!row.reversesId && (row.attachment || editable) && <ReceiptDialog cashId={row.id} active={Boolean(row.attachment)} uploadAllowed={editable} />}
-        {editable && <CorrectionForm direct selected={{
-          value: row.id, label: source, modes: row.origin === "cash_manual" ? ["cancel", "amount"] : ["cancel"],
-        }} />}
-      </> : undefined,
+      actions: actions.length ? <RowActions actions={actions} /> : undefined,
     };
   });
   return <>

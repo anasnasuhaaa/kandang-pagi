@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Settings } from "lucide-react";
+import { Search, Settings } from "lucide-react";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { z } from "zod";
@@ -83,7 +83,7 @@ async function AccountsContent({ search, page, ownId, sort }: { search: string; 
               <input type="hidden" name="tab" value="akun" />
               {currentSort && Object.entries(sortParams(currentSort)).map(([key, value]) => <input key={key} type="hidden" name={key} value={value} />)}
               <Input name="cari" defaultValue={search} aria-label="Cari nama atau email" placeholder="Cari nama atau email" className="w-full min-w-0 sm:w-48" />
-              <Button type="submit" variant="outline">Cari</Button>
+              <Button type="submit" variant="outline" className="min-h-10"><Search aria-hidden="true" />Cari</Button>
             </form>
             <CreateAccountDialog />
           </div>

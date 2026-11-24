@@ -33,8 +33,25 @@ export type ReportSection = {
   columns: string[];
   rows: string[][];
   tableColumns: DataColumn[];
-  rowMeta: { id: string; values: SortValue[] }[];
+  rowMeta: { id: string; values: ReportSortValue[] }[];
 };
+
+type ReportSortValue = string | number | null | { bigint: string } | { unit: string; amount: number | string };
+
+function reportSortValue(value: SortValue): ReportSortValue {
+  if (typeof value === "bigint") return { bigint: value.toString() };
+  if (value instanceof Date) return value.getTime();
+  if (value && typeof value === "object") {
+    return { unit: value.unit, amount: typeof value.amount === "bigint" ? value.amount.toString() : value.amount };
+  }
+  return value ?? null;
+}
+
+export function rawReportSortValue(value: ReportSortValue): SortValue {
+  if (value === null || typeof value !== "object") return value;
+  if ("bigint" in value) return BigInt(value.bigint);
+  return { unit: value.unit, amount: typeof value.amount === "string" ? BigInt(value.amount) : value.amount };
+}
 
 type ReportCell = string | { value: SortValue; text: string };
 
@@ -47,7 +64,7 @@ export function reportSection(title: string, tableColumns: DataColumn[], rows: {
     title, tableColumns,
     columns: tableColumns.map(({ label }) => label),
     rows: rows.map(({ cells }) => cells.map((cell) => typeof cell === "string" ? cell : cell.text)),
-    rowMeta: rows.map(({ id, cells }) => ({ id, values: cells.map((cell) => typeof cell === "string" ? cell : cell.value) })),
+    rowMeta: rows.map(({ id, cells }) => ({ id, values: cells.map((cell) => typeof cell === "string" ? cell : reportSortValue(cell.value)) })),
   };
 }
 

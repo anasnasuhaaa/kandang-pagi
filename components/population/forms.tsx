@@ -8,6 +8,7 @@ import { z } from "zod";
 import {
   addMovementAction, cancelMovementAction, createBarnAction, createFlockAction, setBarnStatusAction,
 } from "@/app/(workspace)/populasi/actions";
+import { useRowAction } from "@/components/shared/row-actions";
 import { FormDialog } from "@/components/shared/form-dialog";
 import { DateField } from "@/components/shared/date-field";
 import { ChoiceField, FormError, TextField } from "@/components/shared/form-fields";
@@ -120,19 +121,25 @@ function ReasonDialog({ title, detail, schema, mutation, children, destructive }
 }) {
   const [open, setOpen] = useState(false);
   const [key, setKey] = useState("");
-  const form = useRecord(schema, mutation, () => setOpen(false));
+  const rowAction = useRowAction();
+  const form = useRecord(schema, mutation, () => { if (rowAction) rowAction.close(); else setOpen(false); });
   return (
-    <AlertDialog open={open} onOpenChange={(value) => { if (value) setKey(crypto.randomUUID()); setOpen(value); }}>
-      <AlertDialogTrigger render={<Button variant="outline" />}>{title}</AlertDialogTrigger>
-      <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
+    <AlertDialog open={rowAction?.open ?? open} onOpenChange={(value) => {
+      if (form.pending) return;
+      if (rowAction) { if (!value) rowAction.close(); return; }
+      if (value) setKey(crypto.randomUUID());
+      setOpen(value);
+    }}>
+      {!rowAction && <AlertDialogTrigger render={<Button variant="outline" />}>{title}</AlertDialogTrigger>}
+      <AlertDialogContent finalFocus={rowAction?.trigger} className="max-h-[90dvh] overflow-y-auto">
         <AlertDialogHeader><AlertDialogTitle>{title}</AlertDialogTitle><AlertDialogDescription>{detail}</AlertDialogDescription></AlertDialogHeader>
         <form noValidate onSubmit={form.submit} className="space-y-4">
-          {children(key)}
+          {children(rowAction?.requestKey ?? key)}
           <TextField name="reason" label="Alasan" error={form.errors.reason} />
           <FormError message={form.message} />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={form.pending}>Kembali</AlertDialogCancel>
-            <Button type="submit" variant={destructive ? "destructive" : "default"} disabled={form.pending}>Konfirmasi</Button>
+            <Button type="submit" variant={destructive ? "destructive" : "default"} disabled={form.pending}>{form.pending ? "Menyimpan…" : "Konfirmasi"}</Button>
           </AlertDialogFooter>
         </form>
       </AlertDialogContent>

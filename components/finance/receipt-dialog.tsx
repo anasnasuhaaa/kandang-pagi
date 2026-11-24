@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useRowAction } from "@/components/shared/row-actions";
 import { FormDialog } from "@/components/shared/form-dialog";
 import { FormError } from "@/components/shared/form-fields";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -18,10 +19,11 @@ const historySchema = z.array(z.object({ id: z.uuid(), status: z.enum(["active",
 type History = z.infer<typeof historySchema>;
 const time = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "short", timeStyle: "short" });
 
-export function ReceiptDialog({ cashId, uploadAllowed, active }: { cashId: string; uploadAllowed: boolean; active: boolean }) {
+export function ReceiptDialog({ cashId, uploadAllowed, active, mode }: { cashId: string; uploadAllowed: boolean; active: boolean; mode: "view" | "upload" }) {
   const router = useRouter();
   const fieldId = useId();
-  const [open, setOpen] = useState(false);
+  const rowAction = useRowAction();
+  const open = rowAction?.open ?? false;
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [file, setFile] = useState<File>();
@@ -31,7 +33,7 @@ export function ReceiptDialog({ cashId, uploadAllowed, active }: { cashId: strin
   const path = `/api/bukti/${cashId}`;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || mode !== "view") return;
     const controller = new AbortController();
     void fetch(`${path}?riwayat=1`, { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
@@ -40,7 +42,7 @@ export function ReceiptDialog({ cashId, uploadAllowed, active }: { cashId: strin
       })
       .catch(() => { if (!controller.signal.aborted) setMessage("Riwayat bukti tidak dapat dimuat."); });
     return () => controller.abort();
-  }, [open, path]);
+  }, [open, path, mode]);
 
   useEffect(() => {
     return () => { if (preview) URL.revokeObjectURL(preview); };
@@ -60,7 +62,7 @@ export function ReceiptDialog({ cashId, uploadAllowed, active }: { cashId: strin
       toast.success("Bukti transaksi disimpan.");
       setFile(undefined);
       setPreview("");
-      setOpen(false);
+      rowAction?.close();
       router.refresh();
     } catch {
       setMessage("Tidak dapat terhubung. Coba lagi.");
@@ -71,16 +73,16 @@ export function ReceiptDialog({ cashId, uploadAllowed, active }: { cashId: strin
 
   return <FormDialog open={open} onOpenChange={(value) => {
     if (pending) return;
-    setOpen(value);
+    if (!value) rowAction?.close();
     if (!value) { setMessage(""); setFile(undefined); setPreview(""); setHistory([]); }
-  }} title={active ? "Bukti transaksi" : "Tambah bukti"} description="Foto dapat dibuka oleh pengguna yang memiliki akses keuangan.">
+  }} title={mode === "view" ? "Bukti transaksi" : active ? "Ganti bukti" : "Tambah bukti"} description="Foto dapat dibuka oleh pengguna yang memiliki akses keuangan.">
     <div className="space-y-4">
       {history.map((item) => (
         <Link key={item.id} className={buttonVariants({ variant: "outline" })} href={`${path}?versi=${item.id}`} target="_blank" rel="noreferrer" prefetch={false}>
           {item.status === "active" ? "Lihat bukti aktif" : "Lihat versi lama"} · {time.format(new Date(item.at))}
         </Link>
       ))}
-      {uploadAllowed && <>
+      {uploadAllowed && mode === "upload" && <>
         <Field>
           <FieldLabel htmlFor={fieldId}>{active ? "Pilih foto pengganti" : "Pilih foto bukti"}</FieldLabel>
           <Input id={fieldId} type="file" accept={receiptMime.options.join(",")} disabled={pending} onChange={(event) => {

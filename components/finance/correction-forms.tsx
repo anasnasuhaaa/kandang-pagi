@@ -18,6 +18,7 @@ export function CorrectionForm({ selected, choices, direct }: {
     schema={correctionInputSchema} action={direct ? directCorrectionAction : requestCorrectionAction}
     prepare={(raw) => ({ ...raw, id: selected?.value ?? raw.id })}
     initial={{ proposed: "cancel" }}
+    destructive={direct && selected?.modes.length === 1 && selected.modes[0] === "cancel"}
     confirm={direct ? "Koreksi disimpan sebagai pembalik dan, bila diperlukan, catatan pengganti." : undefined}
     renderExtra={(errors, values, update) => {
       const choice = selected ?? choices?.find(({ value }) => value === values.id);

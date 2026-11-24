@@ -6,9 +6,10 @@ import { toast } from "sonner";
 import { z } from "zod";
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { RowActions, useRowAction, type RowAction } from "@/components/shared/row-actions";
 import { FormDialog } from "@/components/shared/form-dialog";
 import { changeRoleSchema, changeStatusSchema, issueLinkSchema, newAccountSchema } from "@/lib/account-validation";
 import { roleLabels, roles, type Role } from "@/lib/roles";
@@ -69,40 +70,50 @@ export function CreateAccountDialog() {
   );
 }
 
-export function AccountControls({ userId, name, role, status }: {
-  userId: string; name: string; role: Role; status: "active" | "suspended" | "pending";
-}) {
+type Account = { userId: string; name: string; role: Role; status: "active" | "suspended" | "pending" };
+
+export function AccountControls(account: Account) {
+  const { status } = account;
+  const actions: RowAction[] = [
+    { id: "role", label: "Ubah peran", icon: "edit", content: <ChangeRole {...account} /> },
+  ];
+  if (status !== "suspended") {
+    actions.push({ id: "link", label: status === "pending" ? "Tautan aktivasi" : "Tautan reset",
+      icon: "access", content: <IssueLink {...account} /> });
+  }
+  if (status !== "pending") {
+    actions.push({ id: "status", label: status === "active" ? "Tangguhkan akun" : "Aktifkan kembali",
+      icon: status === "active" ? "cancel" : "check", destructive: status === "active", content: <ChangeStatus {...account} /> });
+  }
+  return <RowActions actions={actions} />;
+}
+
+function ChangeRole({ userId, name, role }: Account) {
   const router = useRouter();
-  const [roleOpen, setRoleOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [issued, setIssued] = useState<IssuedLink>();
-  const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState("");
-  const purpose = status === "pending" ? "activation" : "reset";
-  const stateLabel = status === "active" ? "Tangguhkan akun" : "Aktifkan kembali";
+  const launch = useRowAction();
   const form = useValidatedForm(changeRoleSchema, setRoleAction, () => {
-    setRoleOpen(false);
+    launch?.close();
     toast.success("Peran diubah.");
     router.refresh();
   });
 
-  async function changeStatus() {
-    const change = changeStatusSchema.parse({ userId, status: status === "active" ? "suspended" : "active" });
-    setPending(true);
-    setMessage("");
-    try {
-      const result = await setStatusAction(change);
-      if (!result.ok) return setMessage(result.message);
-      setConfirmOpen(false);
-      toast.success("Status akun diperbarui.");
-      router.refresh();
-    } catch {
-      setMessage("Status akun gagal diperbarui.");
-    } finally {
-      setPending(false);
-    }
-  }
+  return <FormDialog open={launch?.open ?? false} onOpenChange={(open) => { if (!open && !form.pending) launch?.close(); }}
+    title="Ubah peran" description={`Pilih peran baru untuk ${name}. Perubahan mengakhiri sesi akun ini.`}>
+    <form noValidate onSubmit={form.submit} className="space-y-4">
+      <input type="hidden" name="userId" value={userId} />
+      <ChoiceField name="role" label="Peran baru" choices={roleChoices} value={role} error={form.errors.role} />
+      <FormError message={form.message} />
+      <Button type="submit" disabled={form.pending}>{form.pending ? "Menyimpan…" : "Simpan peran"}</Button>
+    </form>
+  </FormDialog>;
+}
+
+function IssueLink({ userId, name, status }: Account) {
+  const launch = useRowAction();
+  const [issued, setIssued] = useState<IssuedLink>();
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+  const purpose = status === "pending" ? "activation" : "reset";
 
   async function generateLink() {
     const input = issueLinkSchema.parse({ userId, purpose });
@@ -120,41 +131,58 @@ export function AccountControls({ userId, name, role, status }: {
     }
   }
 
-  return (
-    <div className="flex items-center gap-2">
-      <FormDialog open={roleOpen} onOpenChange={setRoleOpen} title="Ubah peran" description={`Pilih peran baru untuk ${name}. Perubahan mengakhiri sesi akun ini.`}>
-        <form noValidate onSubmit={form.submit} className="space-y-4">
-          <input type="hidden" name="userId" value={userId} />
-          <ChoiceField name="role" label="Peran baru" choices={roleChoices} value={role} error={form.errors.role} />
-          <FormError message={form.message} />
-          <Button type="submit" disabled={form.pending}>Simpan peran</Button>
-        </form>
-      </FormDialog>
-      {status !== "suspended" && (
-        <FormDialog open={linkOpen} onOpenChange={(next) => { setLinkOpen(next); if (!next) { setIssued(undefined); setMessage(""); } }}
-          title={status === "pending" ? "Tautan aktivasi" : "Tautan reset"}
-          description={`Pastikan identitas ${name} sebelum membuat dan membagikan tautan baru.`}>
-          {issued ? <IssuedLinkView link={issued} /> : (
-            <div className="space-y-4"><FormError message={message} /><Button type="button" onClick={generateLink} disabled={pending}>Buat tautan baru</Button></div>
-          )}
-        </FormDialog>
-      )}
-      {status !== "pending" && (
-        <AlertDialog open={confirmOpen} onOpenChange={(next) => { setConfirmOpen(next); if (!next) setMessage(""); }}>
-          <AlertDialogTrigger render={<Button variant="outline" />}>{stateLabel}</AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{stateLabel}</AlertDialogTitle>
-              <AlertDialogDescription>{status === "active" ? `Akses ${name} dihentikan dan seluruh sesi ditutup.` : `${name} dapat kembali masuk dengan kata sandi yang masih berlaku.`}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <FormError message={message} />
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={pending}>Batal</AlertDialogCancel>
-              <Button type="button" variant={status === "active" ? "destructive" : "default"} onClick={changeStatus} disabled={pending}>{stateLabel}</Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-    </div>
-  );
+  return <FormDialog open={launch?.open ?? false} onOpenChange={(open) => {
+    if (open || pending) return;
+    setIssued(undefined);
+    launch?.close();
+  }} title={status === "pending" ? "Tautan aktivasi" : "Tautan reset"}
+    description={`Pastikan identitas ${name} sebelum membuat dan membagikan tautan baru.`}>
+    {issued ? <IssuedLinkView link={issued} /> : (
+      <div className="space-y-4"><FormError message={message} />
+        <Button type="button" onClick={generateLink} disabled={pending}>{pending ? "Menyiapkan…" : "Buat tautan baru"}</Button>
+      </div>
+    )}
+  </FormDialog>;
+}
+
+function ChangeStatus({ userId, status, name }: Account) {
+  const router = useRouter();
+  const launch = useRowAction();
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+  const suspend = status === "active";
+  const label = suspend ? "Tangguhkan akun" : "Aktifkan kembali";
+
+  async function changeStatus() {
+    const change = changeStatusSchema.parse({ userId, status: suspend ? "suspended" : "active" });
+    setPending(true);
+    setMessage("");
+    try {
+      const result = await setStatusAction(change);
+      if (!result.ok) return setMessage(result.message);
+      launch?.close();
+      toast.success("Status akun diperbarui.");
+      router.refresh();
+    } catch {
+      setMessage("Status akun gagal diperbarui.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return <AlertDialog open={launch?.open ?? false} onOpenChange={(open) => { if (!open && !pending) launch?.close(); }}>
+    <AlertDialogContent finalFocus={launch?.trigger} className="max-h-[90dvh] overflow-y-auto">
+      <AlertDialogHeader>
+        <AlertDialogTitle>{label}</AlertDialogTitle>
+        <AlertDialogDescription>{suspend ? `Akses ${name} dihentikan dan seluruh sesi ditutup.` : `${name} dapat kembali masuk dengan kata sandi yang masih berlaku.`}</AlertDialogDescription>
+      </AlertDialogHeader>
+      <FormError message={message} />
+      <AlertDialogFooter>
+        <AlertDialogCancel disabled={pending}>Batal</AlertDialogCancel>
+        <Button type="button" variant={suspend ? "destructive" : "default"} onClick={changeStatus} disabled={pending}>
+          {pending ? "Menyimpan…" : label}
+        </Button>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>;
 }

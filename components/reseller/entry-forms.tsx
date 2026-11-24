@@ -86,7 +86,7 @@ export function ResellerCashForm({ today, opening }: { today: string; opening?: 
 }
 
 export function CancelResellerForm({ id }: { id: string }) {
-  return <LedgerForm title="Batalkan catatan" description="Pembatalan membukukan pergerakan pembalik dan menyimpan catatan asli."
+  return <LedgerForm destructive title="Batalkan catatan" description="Pembatalan membukukan pergerakan pembalik dan menyimpan catatan asli."
     schema={resellerCancelSchema} action={cancelResellerAction} fields={[textField("reason", "Alasan pembatalan")]}
     prepare={(raw) => ({ ...raw, id })} confirm="Saldo stok dan kas pada tanggal transaksi akan dihitung sesuai pembatalan." />;
 }

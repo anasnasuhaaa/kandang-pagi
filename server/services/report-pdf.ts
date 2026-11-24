@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import type { ReportData } from "../../lib/domain/report";
+import type { ReportData, ReportSection } from "../../lib/domain/report";
 import { businessTimeZone, formatDate } from "../../lib/format";
 
 const width = 842;
@@ -38,7 +38,9 @@ function wrap(text: string, font: PDFFont, size: number, maxWidth: number) {
   return result;
 }
 
-export async function renderReportPdf(report: ReportData) {
+type PdfReport = Omit<ReportData, "sections"> & { sections: Pick<ReportSection, "title" | "columns" | "rows">[] };
+
+export async function renderReportPdf(report: PdfReport) {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);

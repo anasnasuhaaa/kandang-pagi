@@ -1,3 +1,4 @@
+import { RowActions } from "@/components/shared/row-actions";
 import { tableColumn as col, type DataColumn } from "@/components/shared/data-table";
 import type { Metadata } from "next";
 import { Store } from "lucide-react";
@@ -84,7 +85,8 @@ function resellerRows(data: View, tab: z.infer<typeof tabSchema>, today: string)
           id: unit.id, filter: status, search: `${unit.code} ${unit.name}`,
           cells: [ledgerCell(unit.effectiveDate, formatDate(unit.effectiveDate)), unit.code, unit.name, ledgerCell(unit.piecesPerUnit, pieces(unit.piecesPerUnit)), ledgerCell(unit.revision, formatQuantity(unit.revision)),
             status === "past" ? "Versi lama" : status === "active" ? "Aktif" : "Nonaktif"],
-          actions: current ? <UnitDefinitionForm today={today} unit={unit} /> : undefined,
+          actions: current ? <RowActions actions={[{ id: "revision", label: "Buat versi satuan", icon: "edit",
+            content: <UnitDefinitionForm today={today} unit={unit} /> }]} /> : undefined,
         };
       }),
     };
@@ -113,7 +115,8 @@ function resellerRows(data: View, tab: z.infer<typeof tabSchema>, today: string)
       search: [formatDate(row.day), label, categoryName, row.note, ...detail].join(" "),
       cells: [ledgerCell(row.day, formatDate(row.day)), label, ...values, ledgerCell(row.note || null, row.note || "—"),
         ledgerCell(row.active ? "Tercatat" : "Dibatalkan", <Badge variant={row.active ? "secondary" : "outline"}>{row.active ? "Tercatat" : "Dibatalkan"}</Badge>)],
-      actions: row.active && !row.reversesId ? <CancelResellerForm id={row.id} /> : undefined,
+      actions: row.active && !row.reversesId ? <RowActions actions={[{ id: "cancel", label: "Batalkan catatan", icon: "cancel", destructive: true,
+        content: <CancelResellerForm id={row.id} /> }]} /> : undefined,
     };
   });
   return { rows, columns: [

@@ -1,3 +1,4 @@
+import { RowActions } from "@/components/shared/row-actions";
 import { tableColumn as col } from "@/components/shared/data-table";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -227,7 +228,8 @@ function stockRows(data: View, day: string, role: Role, forms: FeedFormOptions) 
           ledgerCell(missing || stale ? null : row.grams, missing || stale ? "—" : mass(row.grams)),
           ...(includeMoney ? [ledgerCell(missing || stale ? null : row.value, row.value === undefined || missing || stale ? "—" : formatIDR(row.value))] : []),
         ],
-        actions: canMeasure ? <FeedClosingForm {...forms} selection={{ productId: item.id, barnId: barn.id }} /> : undefined,
+        actions: canMeasure ? <RowActions actions={[{ id: "measure", label: "Catat sisa harian", icon: "add",
+          content: <FeedClosingForm {...forms} selection={{ productId: item.id, barnId: barn.id }} /> }]} /> : undefined,
       };
     });
   });

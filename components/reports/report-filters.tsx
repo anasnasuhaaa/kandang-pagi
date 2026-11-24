@@ -1,5 +1,7 @@
 "use client";
 
+import { ListFilter } from "lucide-react";
+
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { DateField } from "@/components/shared/date-field";
@@ -49,7 +51,7 @@ export function ReportFilters({ selected, options, from, to }: {
         <TextField name="cari" label="Pencarian rincian" placeholder="Ketik kata kunci" defaultValue={selected.cari ?? ""} />
       </div>
       <FormError message={message} />
-      <Button type="submit" className="h-10">Terapkan filter</Button>
+      <Button type="submit" variant="outline" className="min-h-10"><ListFilter aria-hidden="true" />Terapkan filter</Button>
     </form>
   );
 }

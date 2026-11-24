@@ -1,5 +1,7 @@
 "use client";
 
+import { ListFilter } from "lucide-react";
+
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
@@ -52,7 +54,7 @@ export function PopulationFilters({
         <ChoiceField name="kelompok" label="Kelompok" value={flockId ?? ""} choices={[{ value: "", label: "Semua kelompok" }, ...flocks]} />
         <div className="flex min-w-0 flex-wrap items-end gap-2 sm:col-span-2 xl:col-span-1">
           {search !== undefined && <div className="min-w-0 flex-1"><TextField name="cari" label="Cari" placeholder="Nama atau kode" defaultValue={search} /></div>}
-          <Button type="submit" variant="outline" className="h-10">Terapkan filter</Button>
+          <Button type="submit" variant="outline" className="min-h-10"><ListFilter aria-hidden="true" />Terapkan filter</Button>
         </div>
       </div>
       <FormError message={error} />

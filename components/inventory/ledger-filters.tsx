@@ -1,5 +1,7 @@
 "use client";
 
+import { ListFilter } from "lucide-react";
+
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
@@ -54,7 +56,7 @@ export function LedgerFilters({ path, tab, query, choices, filterLabel = "Filter
         {kind && <ChoiceField name="jenis" label="Jenis aktivitas" value={kind.value} choices={[{ value: "", label: "Semua aktivitas" }, ...kind.choices]} />}
         {choices.length > 0 && <ChoiceField name="filter" label={filterLabel} value={query.filter} choices={[{ value: "", label: "Semua" }, ...choices]} />}
         <TextField name="cari" label="Cari catatan" placeholder="Cari" defaultValue={query.search} />
-        <Button type="submit" variant="outline" className="h-10">Terapkan filter</Button>
+        <Button type="submit" variant="outline" className="min-h-10"><ListFilter aria-hidden="true" />Terapkan filter</Button>
       </div>
       <FormError message={error} />
     </form>

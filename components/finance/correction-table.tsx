@@ -1,3 +1,4 @@
+import { RowActions } from "@/components/shared/row-actions";
 import { tableColumn as col } from "@/components/shared/data-table";
 import { headers } from "next/headers";
 import { LedgerTable, ledgerCell } from "@/components/inventory/ledger-table";
@@ -45,7 +46,8 @@ export async function CorrectionTable({ path, tab, query, administrator }: { pat
       cells: [ledgerCell(day, formatDate(day)), label, requester, ledgerCell(originalValue, original), ledgerCell(proposedValue, after), request.reason,
         ledgerCell(statuses[request.status], <Badge variant={request.status === "rejected" ? "outline" : "secondary"}>{statuses[request.status]}</Badge>),
         ledgerCell(request.reviewReason, request.reviewReason ?? "—")],
-      actions: administrator && request.status === "pending" ? <ReviewCorrectionForm id={request.id} /> : undefined,
+      actions: administrator && request.status === "pending" ? <RowActions actions={[{ id: "review", label: "Tinjau permintaan", icon: "history",
+        content: <ReviewCorrectionForm id={request.id} /> }]} /> : undefined,
     };
   });
   return <section className="space-y-4">

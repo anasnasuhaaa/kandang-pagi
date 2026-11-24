@@ -1,3 +1,4 @@
+import { RowActions } from "@/components/shared/row-actions";
 import { tableColumn as col, type DataColumn } from "@/components/shared/data-table";
 import type { Metadata } from "next";
 import { Activity } from "lucide-react";
@@ -73,7 +74,8 @@ function healthRows(view: View, tab: z.infer<typeof tabSchema>, from: string, op
       id: data.id, filter: data.status, search: [data.incident, barn(data.barnId), flock(data.flockId), data.observations, note].join(" "),
       cells: [ledgerCell(day, formatDate(day)), data.incident, `${barn(data.barnId)} · ${flock(data.flockId)}`,
         data.observations, ledgerCell(data.treatment || note || null, [data.treatment, note].filter(Boolean).join(" · ") || "—"), staff(data.responsibleId), incidentStatus[data.status]],
-      actions: operator ? <IncidentStatusForm id={data.id} status={data.status} /> : undefined,
+      actions: operator ? <RowActions actions={[{ id: "status", label: "Perbarui status", icon: "edit",
+        content: <IncidentStatusForm id={data.id} status={data.status} /> }]} /> : undefined,
     })),
   };
   if (tab === "jadwal") return {
@@ -100,7 +102,8 @@ function healthRows(view: View, tab: z.infer<typeof tabSchema>, from: string, op
       id: row.id, filter: row.barnId, search: [barn(row.barnId), flock(row.flockId), row.reason].join(" "),
       cells: [ledgerCell(row.startedOn, formatDate(row.startedOn)), ledgerCell(row.endedOn, row.endedOn ? formatDate(row.endedOn) : "—"), barn(row.barnId), flock(row.flockId), row.reason,
         row.active ? "Aktif" : "Selesai"],
-      actions: operator && !row.endedOn ? <EndQuarantineForm id={row.id} today={today} /> : undefined,
+      actions: operator && !row.endedOn ? <RowActions actions={[{ id: "end", label: "Akhiri karantina", icon: "check",
+        content: <EndQuarantineForm id={row.id} today={today} /> }]} /> : undefined,
     })),
   };
 }

@@ -5,6 +5,8 @@ import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DateField } from "@/components/shared/date-field";
+import { Check } from "lucide-react";
+import { useRowAction } from "@/components/shared/row-actions";
 import { FormDialog } from "@/components/shared/form-dialog";
 import { ChoiceField, FormError, TextField, type FieldErrors } from "@/components/shared/form-fields";
 import {
@@ -56,7 +58,7 @@ export function LedgerFields({ fields, errors, update }: {
 }
 
 export function LedgerForm({
-  title, description, schema, action, fields, renderExtra, prepare, confirm, initial = {}, triggerVariant,
+  title, description, schema, action, fields, renderExtra, prepare, confirm, initial = {}, triggerVariant, destructive = false,
 }: {
   title: string;
   description: string;
@@ -67,10 +69,13 @@ export function LedgerForm({
   prepare?: (raw: RawForm) => unknown;
   confirm?: string;
   initial?: RawForm;
+  destructive?: boolean;
   triggerVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const rowAction = useRowAction();
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = rowAction?.open ?? localOpen;
   const [requestKey, setRequestKey] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [message, setMessage] = useState("");
@@ -85,13 +90,17 @@ export function LedgerForm({
 
   function changeOpen(value: boolean) {
     if (pending) return;
+    if (rowAction) {
+      if (!value) rowAction.close();
+      return;
+    }
     if (value) {
       setRequestKey(crypto.randomUUID());
       setErrors({});
       setMessage("");
       setValues(initial);
     }
-    setOpen(value);
+    setLocalOpen(value);
   }
 
   async function persist() {
@@ -101,7 +110,8 @@ export function LedgerForm({
       const response = await action(lastSubmission.current);
       if (response.ok) {
         setConfirmOpen(false);
-        setOpen(false);
+        if (rowAction) rowAction.close();
+        else setLocalOpen(false);
         toast.success("Pencatatan berhasil disimpan.");
         router.refresh();
       } else {
@@ -136,7 +146,7 @@ export function LedgerForm({
     <>
       <FormDialog open={open} onOpenChange={changeOpen} title={title} description={description} triggerVariant={triggerVariant}>
         <form noValidate onSubmit={submit} className="min-w-0 space-y-4">
-          <input type="hidden" name="requestKey" value={requestKey} />
+          <input type="hidden" name="requestKey" value={rowAction?.requestKey ?? requestKey} />
           <LedgerFields fields={fields} errors={errors} update={update} />
           {renderExtra?.(errors, values, update)}
           <FormError message={message} />
@@ -147,7 +157,9 @@ export function LedgerForm({
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Konfirmasi pencatatan</AlertDialogTitle><AlertDialogDescription>{confirm}</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel disabled={pending}>Kembali</AlertDialogCancel>
-            <Button onClick={persist} disabled={pending}>{pending ? "Menyimpan…" : "Konfirmasi dan simpan"}</Button>
+            <Button type="button" variant={destructive ? "destructive" : "default"} onClick={persist} disabled={pending}>
+              <Check aria-hidden="true" />{pending ? "Menyimpan…" : "Konfirmasi dan simpan"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>}
